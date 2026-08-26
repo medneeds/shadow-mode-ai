@@ -140,11 +140,11 @@ function TrainingSetup() {
       const question = nextSetupQuestion(provided);
 
       if (result.shadowText) {
-        addSetupMessage("shadow", result.shadowText);
+        sayShadow(result.shadowText);
       } else if (question) {
-        addSetupMessage("shadow", question);
+        sayShadow(question);
       } else {
-        addSetupMessage("shadow", "Pronto. Podemos começar quando você quiser.");
+        sayShadow("Pronto. Podemos começar quando você quiser.");
       }
 
       if (result.startSession && !question) {
@@ -152,11 +152,42 @@ function TrainingSetup() {
         void navigate({ to: "/modo-sombra" });
       }
     } catch {
-      addSetupMessage("shadow", "Não consegui entender agora. Pode dizer de outra forma?");
+      sayShadow("Não consegui entender agora. Pode dizer de outra forma?");
     } finally {
+      busyRef.current = false;
       setBusy(false);
     }
   };
+
+  const handleUtterance = useCallback(
+    async (audio: Blob) => {
+      if (busyRef.current) return;
+      const result = await transcribeUtterance(audio).catch(() => ({ error: "stt_failed" }));
+      if ("error" in result) {
+        setVoiceNotice(
+          result.error === "voice_not_configured"
+            ? voiceMessages.notConfigured
+            : voiceMessages.sttFailed,
+        );
+        return;
+      }
+      if (!result.text.trim()) return;
+      setVoiceNotice(null);
+      await send(result.text, "voice");
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [config, setupMessages, providedFields],
+  );
+
+  const capture = useVoiceCapture({
+    onUtterance: (audio) => void handleUtterance(audio),
+    onSpeechStart: () => speech.stop(),
+    suspended: busy,
+  });
+
+  const micFailed =
+    capture.status === "denied" || capture.status === "error" || capture.status === "unsupported";
+  const voiceInputBroken = micFailed || availability?.speechToText === false;
 
   const lastShadow = [...setupMessages].reverse().find((m) => m.role === "shadow");
   const earlier = setupMessages.slice(-4, -1);
