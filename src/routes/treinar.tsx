@@ -1,7 +1,14 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useRef, useState } from "react";
-import { ArrowUp } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ArrowUp, Mic, MicOff } from "lucide-react";
+
+import { useVoiceCapture } from "@/lib/voice/use-voice-capture";
+import { useShadowSpeech } from "@/lib/voice/use-shadow-speech";
+import { fetchVoiceAvailability, transcribeUtterance } from "@/lib/voice/voice-transport";
+import { voiceMessages, type VoiceAvailability } from "@/lib/voice/voice-types";
+import { traineeCanSpeak } from "@/lib/shadow-trainer";
+import type { TraineeInputSource } from "@/lib/trainee-input";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { VoicePresence } from "@/components/shadow/VoicePresence";
