@@ -8,21 +8,24 @@ import { durations, levels, themes, type LevelId } from "@/lib/shadow-content";
 import { useTrainingSession } from "@/lib/session-store";
 import { durationLabel, levelLabel, themeLabel } from "@/lib/training-session";
 import {
-  interactionModes,
+  shadowOutputModes,
   shadowSummary,
+  traineeInputModes,
+  traineeSummary,
   trainerProfiles,
   voicePreferences,
 } from "@/lib/shadow-trainer";
+import { pageTitle } from "@/lib/brand";
 
 export const Route = createFileRoute("/treinar")({
   head: () => ({
     meta: [
-      { title: "Configurar estação — Shadow Mode" },
+      { title: pageTitle("Configurar estação") },
       {
         name: "description",
-        content: "Escolha tema, nível e duração da sua estação clínica no Shadow Mode.",
+        content: "Escolha tema, nível, duração e como você e o Sombra vão se comunicar.",
       },
-      { property: "og:title", content: "Configurar estação — Shadow Mode" },
+      { property: "og:title", content: pageTitle("Configurar estação") },
       {
         property: "og:description",
         content: "Defina tema, nível e duração antes de entrar no Modo Sombra.",
@@ -41,10 +44,11 @@ function TrainingSetup() {
     config.durationId,
   )}`;
   const shadowLine = shadowSummary(
-    config.interactionMode,
+    config.shadowOutputMode,
     config.voicePreference,
     config.trainerProfile,
   );
+  const traineeLine = traineeSummary(config.traineeInputMode);
 
   const handleStart = () => {
     startSession();
@@ -75,9 +79,15 @@ function TrainingSetup() {
               ))}
             </dl>
 
-            <div className="mt-6 rounded-lg border border-hairline bg-surface p-4">
-              <p className="eyebrow">Sombra</p>
-              <p className="mt-2 font-display text-base">{shadowLine}</p>
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-lg border border-hairline bg-surface p-4">
+                <p className="eyebrow">Respostas do Sombra</p>
+                <p className="mt-2 font-display text-base">{shadowLine}</p>
+              </div>
+              <div className="rounded-lg border border-hairline bg-surface p-4">
+                <p className="eyebrow">Suas respostas</p>
+                <p className="mt-2 font-display text-base">{traineeLine}</p>
+              </div>
             </div>
 
             <p className="mt-6 text-sm leading-relaxed text-muted-foreground">
@@ -104,7 +114,7 @@ function TrainingSetup() {
         <SectionHeading
           eyebrow="Treinar"
           title="Configurar estação"
-          description="Escolha tema, nível e duração. Você conduzirá o atendimento por voz."
+          description="Escolha tema, nível, duração e como você e o Sombra vão se comunicar."
         />
       </PageSection>
 
@@ -158,27 +168,27 @@ function TrainingSetup() {
 
       <PageSection className="pb-0">
         <fieldset className="border-t border-hairline pt-10">
-          <legend className="eyebrow">Sombra</legend>
+          <legend className="eyebrow">Respostas do Sombra</legend>
 
           <div className="mt-4 grid gap-8 sm:grid-cols-2">
             <div>
-              <p className="text-sm text-muted-foreground">Interação</p>
+              <p className="text-sm text-muted-foreground">Como o Sombra responde</p>
               <div className="mt-3 grid grid-cols-2 gap-3">
-                {interactionModes.map((m) => (
+                {shadowOutputModes.map((m) => (
                   <OptionChip
                     key={m.id}
                     label={m.label}
                     hint={m.hint}
-                    selected={config.interactionMode === m.id}
-                    onSelect={() => setConfig({ interactionMode: m.id })}
+                    selected={config.shadowOutputMode === m.id}
+                    onSelect={() => setConfig({ shadowOutputMode: m.id })}
                   />
                 ))}
               </div>
             </div>
 
-            {config.interactionMode === "voice_text" && (
+            {config.shadowOutputMode === "voice_text" && (
               <div>
-                <p className="text-sm text-muted-foreground">Voz</p>
+                <p className="text-sm text-muted-foreground">Voz do Sombra</p>
                 <div className="mt-3 grid grid-cols-2 gap-3">
                   {voicePreferences.map((v) => (
                     <OptionChip
@@ -192,9 +202,36 @@ function TrainingSetup() {
               </div>
             )}
           </div>
+        </fieldset>
 
-          <div className="mt-8">
-            <p className="text-sm text-muted-foreground">Perfil</p>
+        <fieldset className="mt-12 border-t border-hairline pt-10">
+          <legend className="eyebrow">Suas respostas</legend>
+
+          <p className="mt-4 text-sm text-muted-foreground">Como você responde durante a estação</p>
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {traineeInputModes.map((m) => (
+              <OptionChip
+                key={m.id}
+                label={m.label}
+                hint={m.hint}
+                selected={config.traineeInputMode === m.id}
+                onSelect={() => setConfig({ traineeInputMode: m.id })}
+              />
+            ))}
+          </div>
+          <p className="mt-3 max-w-xl text-xs leading-relaxed text-muted-foreground">
+            Falar ou digitar não muda sua avaliação. A devolutiva considera conteúdo, prioridade,
+            tempo e sequência — nunca a forma de responder.
+          </p>
+        </fieldset>
+      </PageSection>
+
+      <PageSection className="pb-0">
+        <fieldset className="border-t border-hairline pt-10">
+          <legend className="eyebrow">Perfil do treinador</legend>
+
+          <div className="mt-4">
+            <p className="text-sm text-muted-foreground">Estilo de condução do Sombra</p>
             <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
               {trainerProfiles.map((p) => (
                 <OptionChip
@@ -220,9 +257,9 @@ function TrainingSetup() {
             <p className="eyebrow">Sua estação</p>
             <p className="mt-2 font-display text-lg">{summary}</p>
             <p className="mt-1 text-sm text-muted-foreground">Sombra · {shadowLine}</p>
+            <p className="text-sm text-muted-foreground">Suas respostas · {traineeLine}</p>
             <p className="mt-2 max-w-md text-xs leading-relaxed text-muted-foreground">
-              Você conduzirá o atendimento por voz. Nenhuma lista de tarefas será exibida durante a
-              estação.
+              Nenhuma lista de tarefas será exibida durante a estação.
             </p>
           </div>
           <Button size="lg" onClick={() => setStep("review")}>

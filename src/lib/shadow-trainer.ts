@@ -11,18 +11,51 @@
  * a realidade clínica e nunca sugere diagnóstico, conduta, exame ou passo omitido.
  */
 
-export type InteractionMode = "text" | "voice_text";
+/**
+ * Como o SOMBRA se comunica (saída). Independente da entrada do trainee.
+ */
+export type ShadowOutputMode = "text" | "voice_text";
+
+/**
+ * Como o TRAINEE se comunica (entrada). Independente da saída do Sombra.
+ * Todas as combinações são arquiteturalmente válidas.
+ */
+export type TraineeInputMode = "voice" | "text" | "hybrid";
+
 export type VoicePreference = "female" | "male";
 export type TrainerProfile = "gentle" | "assertive" | "fast_paced" | "permissive";
 
-export const interactionModes: {
-  id: InteractionMode;
+export const shadowOutputModes: {
+  id: ShadowOutputMode;
   label: string;
   hint: string;
 }[] = [
-  { id: "text", label: "Texto", hint: "Respostas apenas escritas" },
-  { id: "voice_text", label: "Voz + texto", hint: "Fala e transcrição juntas" },
+  { id: "text", label: "Texto", hint: "O Sombra responde apenas por escrito." },
+  { id: "voice_text", label: "Voz + texto", hint: "O Sombra fala e exibe o texto." },
 ];
+
+export const traineeInputModes: {
+  id: TraineeInputMode;
+  label: string;
+  hint: string;
+}[] = [
+  { id: "voice", label: "Voz", hint: "Conduza o caso falando." },
+  { id: "text", label: "Texto", hint: "Digite suas condutas." },
+  { id: "hybrid", label: "Voz + texto", hint: "Fale ou digite durante a estação." },
+];
+
+/** Voz e texto são apenas transportes: não há penalidade clínica por modalidade. */
+export function traineeInputModeLabel(id: TraineeInputMode): string {
+  return traineeInputModes.find((m) => m.id === id)?.label ?? "";
+}
+
+export function traineeCanSpeak(id: TraineeInputMode): boolean {
+  return id === "voice" || id === "hybrid";
+}
+
+export function traineeCanType(id: TraineeInputMode): boolean {
+  return id === "text" || id === "hybrid";
+}
 
 export const voicePreferences: { id: VoicePreference; label: string }[] = [
   { id: "female", label: "Feminina" },
@@ -64,8 +97,8 @@ export const trainerProfiles: {
   },
 ];
 
-export function interactionModeLabel(id: InteractionMode): string {
-  return interactionModes.find((m) => m.id === id)?.label ?? "";
+export function shadowOutputModeLabel(id: ShadowOutputMode): string {
+  return shadowOutputModes.find((m) => m.id === id)?.label ?? "";
 }
 
 export function voicePreferenceLabel(id: VoicePreference): string {
@@ -78,15 +111,20 @@ export function trainerProfileLabel(id: TrainerProfile): string {
 
 /** Resumo pt-BR do Sombra: "Voz feminina · Incisivo" ou "Texto · Incisivo". */
 export function shadowSummary(
-  interactionMode: InteractionMode,
+  shadowOutputMode: ShadowOutputMode,
   voicePreference: VoicePreference,
   trainerProfile: TrainerProfile,
 ): string {
   const left =
-    interactionMode === "voice_text"
+    shadowOutputMode === "voice_text"
       ? `Voz ${voicePreferenceLabel(voicePreference).toLowerCase()}`
       : "Texto";
   return `${left} · ${trainerProfileLabel(trainerProfile)}`;
+}
+
+/** Resumo pt-BR das respostas do trainee: "Voz + texto". */
+export function traineeSummary(traineeInputMode: TraineeInputMode): string {
+  return traineeInputModeLabel(traineeInputMode);
 }
 
 /**

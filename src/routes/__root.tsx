@@ -78,7 +78,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Shadow Mode — Treinamento clínico por voz" },
+      { title: "Modo Sombra | By Medneeds — treinamento clínico por simulação" },
       {
         name: "description",
         content: "Simulação clínica por voz para estudantes, residentes e médicos.",

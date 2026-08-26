@@ -9,13 +9,13 @@ import { levels, themes } from "@/lib/shadow-content";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Shadow Mode — Treinamento clínico por voz" },
+      { title: "Modo Sombra | By Medneeds — treinamento clínico por simulação" },
       {
         name: "description",
         content:
           "Entre em cenários clínicos por voz, conduza o atendimento e descubra como você realmente decide sob pressão.",
       },
-      { property: "og:title", content: "Shadow Mode — Treinamento clínico por voz" },
+      { property: "og:title", content: "Modo Sombra | By Medneeds — treinamento clínico por simulação" },
       {
         property: "og:description",
         content: "Simulação clínica por voz para estudantes, residentes e médicos.",

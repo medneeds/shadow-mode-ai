@@ -8,15 +8,15 @@ import { mockCompetencies } from "@/lib/shadow-content";
 export const Route = createFileRoute("/desempenho")({
   head: () => ({
     meta: [
-      { title: "Desempenho — Shadow Mode" },
+      { title: "Desempenho — Modo Sombra | By Medneeds" },
       {
         name: "description",
         content: "Acompanhe a evolução das suas competências clínicas ao longo das estações.",
       },
-      { property: "og:title", content: "Desempenho — Shadow Mode" },
+      { property: "og:title", content: "Desempenho — Modo Sombra | By Medneeds" },
       {
         property: "og:description",
-        content: "Evolução por competência clínica no Shadow Mode.",
+        content: "Evolução por competência clínica no Modo Sombra.",
       },
     ],
   }),

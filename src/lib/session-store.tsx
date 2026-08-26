@@ -16,6 +16,12 @@ import {
   type TrainingConfig,
   type TrainingSession,
 } from "./training-session";
+import {
+  createTraineeInput,
+  interpretTraineeInput,
+  type TraineeInput,
+  type TraineeInputSource,
+} from "./trainee-input";
 
 type SessionContextValue = {
   /** Configuração atual (persiste entre estações no ciclo de vida do app). */
@@ -29,6 +35,11 @@ type SessionContextValue = {
   finishSession: () => TrainingSession | null;
   clearSession: () => void;
   setVoiceState: (state: VoiceState) => void;
+  /**
+   * Ponto de entrada ÚNICO para respostas do trainee: voz e texto convergem
+   * para a mesma estrutura (TraineeInput) e para o mesmo pipeline.
+   */
+  submitTraineeInput: (source: TraineeInputSource, rawContent: string) => TraineeInput | null;
 };
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -89,6 +100,28 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
     setSession((prev) => (prev && prev.status === "active" ? { ...prev, voiceState } : prev));
   }, []);
 
+  const submitTraineeInput = useCallback(
+    (source: TraineeInputSource, rawContent: string) => {
+      const current = sessionRef.current;
+      if (!current || current.status !== "active") return null;
+      if (!rawContent.trim()) return null;
+      const input = createTraineeInput({
+        sessionId: current.id,
+        source,
+        rawContent,
+        clinicalTime: current.durationSeconds - current.remainingSeconds,
+      });
+      input.interpretation = interpretTraineeInput(input);
+      setSession((prev) =>
+        prev && prev.id === current.id
+          ? { ...prev, traineeInputs: [...prev.traineeInputs, input] }
+          : prev,
+      );
+      return input;
+    },
+    [],
+  );
+
   // Cronômetro: só corre com estação ativa; limpo em toda mudança de estado.
   useEffect(() => {
     if (!session || session.status !== "active") return;
@@ -126,6 +159,7 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
       finishSession,
       clearSession,
       setVoiceState,
+      submitTraineeInput,
     }),
     [
       config,
@@ -138,6 +172,7 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
       finishSession,
       clearSession,
       setVoiceState,
+      submitTraineeInput,
     ],
   );
 

@@ -2,6 +2,8 @@ import { Link } from "@tanstack/react-router";
 import { Home, Mic, History, BarChart3, User } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { brand } from "@/lib/brand";
+
 const navItems = [
   { to: "/", label: "Início", icon: Home },
   { to: "/treinar", label: "Treinar", icon: Mic },
@@ -15,12 +17,17 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="flex min-h-screen flex-col bg-background">
       <header className="sticky top-0 z-40 border-b border-hairline bg-background/85 backdrop-blur-md">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-5 sm:px-8">
-          <Link to="/" className="flex items-center gap-3" aria-label="Shadow Mode, ir para início">
+          <Link to="/" className="flex items-center gap-3" aria-label="Modo Sombra, ir para início">
             <span aria-hidden className="relative flex size-2.5">
               <span className="absolute inset-0 rounded-full bg-moss" />
               <span className="absolute -inset-1.5 rounded-full border border-moss/40" />
             </span>
-            <span className="font-display text-lg tracking-tight">Shadow Mode</span>
+            <span className="flex flex-col leading-tight">
+              <span className="font-display text-lg tracking-tight">{brand.product}</span>
+              <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                {brand.supportLine}
+              </span>
+            </span>
           </Link>
 
           <nav aria-label="Navegação principal" className="hidden md:block">
@@ -53,7 +60,9 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <footer className="hidden border-t border-hairline py-8 md:block">
         <div className="mx-auto flex max-w-6xl flex-col gap-2 px-8 text-xs text-muted-foreground">
-          <p>Shadow Mode — treinamento clínico por voz.</p>
+          <p>
+            {brand.product} · {brand.supportLine}
+          </p>
           <p>Ambiente de simulação. Não substitui julgamento clínico real.</p>
         </div>
       </footer>

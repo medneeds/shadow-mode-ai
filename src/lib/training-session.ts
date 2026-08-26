@@ -5,7 +5,13 @@
 import type { LevelId } from "./shadow-content";
 import { durations, levels, themes } from "./shadow-content";
 import type { VoiceState } from "@/components/shadow/VoicePresence";
-import type { InteractionMode, TrainerProfile, VoicePreference } from "./shadow-trainer";
+import type {
+  ShadowOutputMode,
+  TraineeInputMode,
+  TrainerProfile,
+  VoicePreference,
+} from "./shadow-trainer";
+import type { TraineeInput } from "./trainee-input";
 
 export type SessionStatus = "configuring" | "ready" | "active" | "paused" | "finished";
 
@@ -13,8 +19,10 @@ export type TrainingConfig = {
   themeId: string;
   levelId: LevelId;
   durationId: string;
-  /** Como o Sombra responde (UI/config nesta fase — sem áudio real). */
-  interactionMode: InteractionMode;
+  /** Como o SOMBRA responde (saída). Independente da entrada do trainee. */
+  shadowOutputMode: ShadowOutputMode;
+  /** Como o TRAINEE responde (entrada). Independente da saída do Sombra. */
+  traineeInputMode: TraineeInputMode;
   /** Apresentação de voz apenas; não altera comportamento clínico. */
   voicePreference: VoicePreference;
   /** Estilo de comunicação e pressão; nunca altera a verdade médica do caso. */
@@ -32,6 +40,11 @@ export type TrainingSession = {
   remainingSeconds: number;
   voiceState: VoiceState;
   completed: boolean;
+  /**
+   * Entradas do trainee (voz e texto convergem aqui). O conteúdo original nunca
+   * é descartado — auditoria, debugging, avaliação e debriefing dependem dele.
+   */
+  traineeInputs: TraineeInput[];
 };
 
 export type MockClinicalCase = {
@@ -59,7 +72,8 @@ export const defaultConfig: TrainingConfig = {
   themeId: "emergencia",
   levelId: "intermediario",
   durationId: "15",
-  interactionMode: "voice_text",
+  shadowOutputMode: "voice_text",
+  traineeInputMode: "hybrid",
   voicePreference: "female",
   trainerProfile: "assertive",
 };
@@ -104,6 +118,7 @@ export function createSession(config: TrainingConfig): TrainingSession {
     remainingSeconds: durationSeconds,
     voiceState: "speaking",
     completed: false,
+    traineeInputs: [],
   };
 }
 

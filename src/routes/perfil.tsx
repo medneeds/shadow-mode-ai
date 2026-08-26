@@ -9,12 +9,12 @@ import { levels } from "@/lib/shadow-content";
 export const Route = createFileRoute("/perfil")({
   head: () => ({
     meta: [
-      { title: "Perfil e preferências — Shadow Mode" },
+      { title: "Perfil e preferências — Modo Sombra | By Medneeds" },
       {
         name: "description",
-        content: "Ajuste nível padrão, preferências de voz e acessibilidade do Shadow Mode.",
+        content: "Ajuste nível padrão, preferências de voz e acessibilidade do Modo Sombra.",
       },
-      { property: "og:title", content: "Perfil e preferências — Shadow Mode" },
+      { property: "og:title", content: "Perfil e preferências — Modo Sombra | By Medneeds" },
       {
         property: "og:description",
         content: "Preferências de treinamento, voz e acessibilidade.",
