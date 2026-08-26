@@ -59,13 +59,72 @@
   --color-surface-deep: var(--surface-deep);
   --color-hairline: var(--hairline);
 
-  --shadow-elevated: 0 24px 60px -32px oklch(0 0 0 / 0.8);
+  --shadow-elevated: var(--elevated);
   --shadow-halo: 0 0 80px -10px var(--moss-soft);
 }
 
 :root {
   --radius: 0.5rem;
+  --elevated: 0 24px 60px -32px oklch(0 0 0 / 0.35);
 
+
+  /* Modo claro — neutros quentes minimalistas */
+  --background: oklch(0.975 0.003 90);
+  --foreground: oklch(0.21 0.005 250);
+
+  --surface: oklch(0.955 0.003 90);
+  --surface-raised: oklch(0.99 0.002 90);
+  --surface-deep: oklch(0.932 0.004 90);
+  --hairline: oklch(0.2 0.005 250 / 0.1);
+
+  --card: oklch(0.985 0.002 90);
+  --card-foreground: oklch(0.21 0.005 250);
+  --popover: oklch(0.99 0.002 90);
+  --popover-foreground: oklch(0.21 0.005 250);
+
+  /* Ação primária grafite */
+  --primary: oklch(0.24 0.005 250);
+  --primary-foreground: oklch(0.97 0.003 90);
+
+  --secondary: oklch(0.93 0.003 90);
+  --secondary-foreground: oklch(0.24 0.005 250);
+
+  --muted: oklch(0.94 0.003 90);
+  --muted-foreground: oklch(0.47 0.006 250);
+
+  --accent: oklch(0.92 0.004 90);
+  --accent-foreground: oklch(0.21 0.005 250);
+
+  --destructive: oklch(0.5 0.11 25);
+  --destructive-foreground: oklch(0.97 0.003 90);
+
+  --border: oklch(0.2 0.005 250 / 0.12);
+  --input: oklch(0.2 0.005 250 / 0.18);
+  --ring: oklch(0.45 0.006 250);
+
+  /* Estado/progresso — neutro grafite */
+  --moss: oklch(0.4 0.007 250);
+  --moss-soft: oklch(0.4 0.007 250 / 0.12);
+  --moss-foreground: oklch(0.97 0.003 90);
+
+  /* Ênfase — neutro quente sóbrio */
+  --gold: oklch(0.46 0.012 85);
+  --gold-soft: oklch(0.46 0.012 85 / 0.12);
+  --gold-foreground: oklch(0.97 0.003 90);
+
+  /*
+   * Voice Presence — escopo EXCLUSIVO da visualização de voz.
+   * Mantém as cores espectrais nos dois modos (claro e escuro).
+   */
+  --voice-blue: oklch(0.58 0.11 258);
+  --voice-indigo: oklch(0.56 0.13 278);
+  --voice-violet: oklch(0.58 0.12 300);
+  --voice-cyan: oklch(0.68 0.08 214);
+  --voice-halo: oklch(0.56 0.12 272 / 0.2);
+}
+
+.dark {
+  --elevated: 0 24px 60px -32px oklch(0 0 0 / 0.8);
   /* Ambiente neutro profundo (grafite) */
   --background: oklch(0.178 0.004 250);
   --foreground: oklch(0.95 0.003 90);
