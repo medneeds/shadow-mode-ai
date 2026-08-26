@@ -593,12 +593,15 @@ function ShadowRoom() {
 
 function RoomButton({
   label,
+  text,
   onClick,
   active,
   pressed,
   children,
 }: {
   label: string;
+  /** Rótulo visível — usado nos controles essenciais (microfone e voz). */
+  text?: string;
   onClick: () => void;
   active?: boolean;
   pressed?: boolean;
@@ -612,12 +615,14 @@ function RoomButton({
       aria-pressed={pressed}
       title={label}
       className={cn(
-        "flex size-12 items-center justify-center rounded-full text-muted-foreground/70 transition-all duration-200",
+        "flex h-12 items-center justify-center gap-2 rounded-full text-muted-foreground/70 transition-all duration-200",
+        text ? "border border-hairline px-4" : "w-12",
         "hover:scale-[1.03] hover:bg-surface-raised/50 hover:text-foreground active:scale-95",
         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss",
-        active && "bg-surface-raised/60 text-foreground",
+        active && "border-foreground/25 bg-surface-raised/60 text-foreground",
       )}
     >
+
       {children}
     </button>
   );
