@@ -2,87 +2,49 @@ import { cn } from "@/lib/utils";
 import type { VoiceState } from "./VoicePresence";
 
 /**
- * Indicador explícito do ciclo de interação: ouvindo → pensando → respondendo.
- * Cada fase tem cor espectral, ritmo e texto próprios — a diferenciação nunca
- * depende apenas do movimento da esfera.
+ * Estado da interação em sua forma mínima: um ponto e uma palavra, no mesmo
+ * idioma visual da esfera. Sem caixa, sem borda, sem frase de apoio — o ciclo
+ * (ouvindo → pensando → respondendo) é lido junto com a presença, não ao lado.
  */
-const STATUS: Record<
-  VoiceState,
-  { label: string; hint: string; color: string; pulse: "fast" | "slow" | "none" }
-> = {
-  idle: {
-    label: "Pronto",
-    hint: "Ative o microfone ou escreva para começar",
-    color: "var(--voice-cyan)",
-    pulse: "none",
-  },
-  listening: {
-    label: "Ouvindo você",
-    hint: "Fale sua conduta — o Sombra está captando",
-    color: "var(--voice-cyan)",
-    pulse: "slow",
-  },
-  processing: {
-    label: "Pensando",
-    hint: "Interpretando o que você disse",
-    color: "var(--voice-violet)",
-    pulse: "fast",
-  },
-  speaking: {
-    label: "Respondendo",
-    hint: "O Sombra está falando",
-    color: "var(--voice-blue)",
-    pulse: "slow",
-  },
-  paused: { label: "Pausado", hint: "Estação em pausa", color: "var(--voice-indigo)", pulse: "none" },
-  finished: {
-    label: "Encerrada",
-    hint: "Seguindo para a devolutiva",
-    color: "var(--voice-indigo)",
-    pulse: "none",
-  },
+const STATUS: Record<VoiceState, { label: string; color: string; motion: "pulse" | "think" | "none" }> = {
+  idle: { label: "pronto", color: "var(--voice-cyan)", motion: "none" },
+  listening: { label: "ouvindo", color: "var(--voice-cyan)", motion: "pulse" },
+  processing: { label: "pensando", color: "var(--voice-violet)", motion: "think" },
+  speaking: { label: "respondendo", color: "var(--voice-blue)", motion: "pulse" },
+  paused: { label: "pausado", color: "var(--voice-indigo)", motion: "none" },
+  finished: { label: "encerrada", color: "var(--voice-indigo)", motion: "none" },
 };
 
 export function PresenceStatus({ state, className }: { state: VoiceState; className?: string }) {
   const status = STATUS[state];
 
   return (
-    <div className={cn("flex flex-col items-center gap-1", className)} aria-live="polite">
-      <div
-        className="flex items-center gap-2 rounded-full border px-3 py-1"
-        style={{
-          borderColor: `color-mix(in oklab, ${status.color} 40%, transparent)`,
-          backgroundColor: `color-mix(in oklab, ${status.color} 10%, transparent)`,
-        }}
-      >
-        {state === "processing" ? (
-          <span className="flex items-center gap-[3px]">
-            {[0, 1, 2].map((i) => (
-              <span
-                key={i}
-                className="size-1.5 animate-bounce rounded-full"
-                style={{ backgroundColor: status.color, animationDelay: `${i * 140}ms` }}
-              />
-            ))}
-          </span>
-        ) : (
-          <span
-            className={cn(
-              "size-2 rounded-full",
-              status.pulse === "slow" && "animate-pulse",
-              status.pulse === "fast" && "animate-ping",
-            )}
-            style={{ backgroundColor: status.color }}
-          />
-        )}
-        <span
-          className="text-[11px] font-medium uppercase tracking-[0.14em]"
-          style={{ color: status.color }}
-        >
-          {status.label}
+    <div
+      className={cn("flex items-center justify-center gap-2 transition-opacity duration-500", className)}
+      aria-live="polite"
+    >
+      {status.motion === "think" ? (
+        <span className="flex items-center gap-[3px]">
+          {[0, 1, 2].map((i) => (
+            <span
+              key={i}
+              className="size-1 animate-bounce rounded-full"
+              style={{ backgroundColor: status.color, animationDelay: `${i * 140}ms` }}
+            />
+          ))}
         </span>
-      </div>
-      <p className="text-[11px] text-muted-foreground/70">{status.hint}</p>
+      ) : (
+        <span
+          className={cn("size-1.5 rounded-full", status.motion === "pulse" && "animate-pulse")}
+          style={{ backgroundColor: status.color }}
+        />
+      )}
+      <span
+        className="text-[10px] font-medium lowercase tracking-[0.22em]"
+        style={{ color: `color-mix(in oklab, ${status.color} 78%, transparent)` }}
+      >
+        {status.label}
+      </span>
     </div>
   );
 }
