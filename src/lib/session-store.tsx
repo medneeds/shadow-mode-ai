@@ -33,13 +33,13 @@ import type { ConfigField } from "./shadow/setup-flow";
 type SessionContextValue = {
   /** Configuração atual (persiste entre estações no ciclo de vida do app). */
   config: TrainingConfig;
-  setConfig: (next: Partial<TrainingConfig>) => void;
+  setConfig: (next: Partial<TrainingConfig>) => TrainingConfig;
   /** Campos que o usuário realmente informou — base da divulgação progressiva. */
   providedFields: ConfigField[];
-  applyConfigPatch: (patch: Partial<TrainingConfig>) => void;
+  applyConfigPatch: (patch: Partial<TrainingConfig>) => TrainingConfig;
   session: TrainingSession | null;
   lastCompleted: TrainingSession | null;
-  startSession: () => void;
+  startSession: (patch?: Partial<TrainingConfig>) => void;
   pauseSession: () => void;
   resumeSession: () => void;
   finishSession: () => TrainingSession | null;
@@ -81,6 +81,7 @@ const SessionContext = createContext<SessionContextValue | null>(null);
 
 export function TrainingSessionProvider({ children }: { children: ReactNode }) {
   const [config, setConfigState] = useState<TrainingConfig>(defaultConfig);
+  const configRef = useRef<TrainingConfig>(defaultConfig);
   const [providedFields, setProvidedFields] = useState<ConfigField[]>([]);
   const [session, setSession] = useState<TrainingSession | null>(null);
   const [lastCompleted, setLastCompleted] = useState<TrainingSession | null>(null);
@@ -91,16 +92,19 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
   const [lastRuntime, setLastRuntime] = useState<ClinicalCaseRuntime | null>(null);
   const runtimeRef = useRef<ClinicalCaseRuntime | null>(null);
   const [caseDefinition, setCaseDefinition] = useState<ClinicalCaseDefinition>(referenceCase);
-  const [lastCaseDefinition, setLastCaseDefinition] = useState<ClinicalCaseDefinition>(referenceCase);
+  const [lastCaseDefinition, setLastCaseDefinition] =
+    useState<ClinicalCaseDefinition>(referenceCase);
   const caseRef = useRef<ClinicalCaseDefinition>(referenceCase);
   const recentCaseIdsRef = useRef<string[]>([]);
 
   const setConfig = useCallback((next: Partial<TrainingConfig>) => {
-    setConfigState((prev) => ({ ...prev, ...next }));
+    configRef.current = { ...configRef.current, ...next };
+    setConfigState(configRef.current);
     setProvidedFields((prev) => {
       const keys = Object.keys(next) as ConfigField[];
       return Array.from(new Set([...prev, ...keys]));
     });
+    return configRef.current;
   }, []);
 
   const applyConfigPatch = setConfig;
@@ -131,25 +135,30 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
     return facts;
   }, [pendingFacts]);
 
-  const startSession = useCallback(() => {
-    const selection = selectCase({
-      themeId: config.themeId,
-      levelId: config.levelId,
-      durationId: config.durationId,
-      excludeCaseIds: recentCaseIdsRef.current,
-    });
-    const def = selection.definition;
-    caseRef.current = def;
-    setCaseDefinition(def);
-    setLastCaseDefinition(def);
-    recentCaseIdsRef.current = [def.id, ...recentCaseIdsRef.current].slice(0, 3);
-    const initial = initializeCase(def);
-    setSession(createSession(config, def.id));
-    runtimeRef.current = initial;
-    setRuntimeState(initial);
-    setRoomMessages([]);
-    setPendingFacts([]);
-  }, [config]);
+  const startSession = useCallback(
+    (patch: Partial<TrainingConfig> = {}) => {
+      const resolvedConfig =
+        Object.keys(patch).length > 0 ? applyConfigPatch(patch) : configRef.current;
+      const selection = selectCase({
+        themeId: resolvedConfig.themeId,
+        levelId: resolvedConfig.levelId,
+        durationId: resolvedConfig.durationId,
+        excludeCaseIds: recentCaseIdsRef.current,
+      });
+      const def = selection.definition;
+      caseRef.current = def;
+      setCaseDefinition(def);
+      setLastCaseDefinition(def);
+      recentCaseIdsRef.current = [def.id, ...recentCaseIdsRef.current].slice(0, 3);
+      const initial = initializeCase(def);
+      setSession(createSession(resolvedConfig, def.id));
+      runtimeRef.current = initial;
+      setRuntimeState(initial);
+      setRoomMessages([]);
+      setPendingFacts([]);
+    },
+    [applyConfigPatch],
+  );
 
   const pauseSession = useCallback(() => {
     setSession((prev) =>
@@ -200,28 +209,27 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
     setSession((prev) => (prev && prev.status !== "finished" ? { ...prev, voiceState } : prev));
   }, []);
 
-  const submitTraineeInput = useCallback((
-    source: TraineeInputSource,
-    rawContent: string,
-    provenance?: AssistanceProvenance,
-  ) => {
-    const current = sessionRef.current;
-    if (!current || current.status !== "active") return null;
-    if (!rawContent.trim()) return null;
-    const input = createTraineeInput({
-      sessionId: current.id,
-      source,
-      rawContent,
-      clinicalTime: current.durationSeconds - current.remainingSeconds,
-      ...(provenance ? { provenance } : {}),
-    });
-    setSession((prev) =>
-      prev && prev.id === current.id
-        ? { ...prev, traineeInputs: [...prev.traineeInputs, input] }
-        : prev,
-    );
-    return input;
-  }, []);
+  const submitTraineeInput = useCallback(
+    (source: TraineeInputSource, rawContent: string, provenance?: AssistanceProvenance) => {
+      const current = sessionRef.current;
+      if (!current || current.status !== "active") return null;
+      if (!rawContent.trim()) return null;
+      const input = createTraineeInput({
+        sessionId: current.id,
+        source,
+        rawContent,
+        clinicalTime: current.durationSeconds - current.remainingSeconds,
+        ...(provenance ? { provenance } : {}),
+      });
+      setSession((prev) =>
+        prev && prev.id === current.id
+          ? { ...prev, traineeInputs: [...prev.traineeInputs, input] }
+          : prev,
+      );
+      return input;
+    },
+    [],
+  );
 
   const recordInterpretation = useCallback((inputId: string, actions: TraineeAction[]) => {
     setSession((prev) =>
