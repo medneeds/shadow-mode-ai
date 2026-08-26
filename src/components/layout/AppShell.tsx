@@ -1,97 +1,32 @@
-import { Link } from "@tanstack/react-router";
-import { Home, Mic, History, BarChart3, User } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { ThemeToggle } from "@/components/layout/ThemeToggle";
+import { AppSidebar } from "@/components/layout/AppSidebar";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { brand } from "@/lib/brand";
-
-const navItems = [
-  { to: "/", label: "Início", icon: Home },
-  { to: "/treinar", label: "Treinar", icon: Mic },
-  { to: "/historico", label: "Histórico", icon: History },
-  { to: "/desempenho", label: "Desempenho", icon: BarChart3 },
-  { to: "/perfil", label: "Perfil", icon: User },
-] as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <header className="sticky top-0 z-40 border-b border-hairline bg-background/85 backdrop-blur-md">
-        <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-5 sm:px-8">
-          <Link to="/" className="flex items-center gap-3" aria-label="Modo Sombra, ir para início">
-            <span aria-hidden className="relative flex size-2.5">
-              <span className="absolute inset-0 rounded-full bg-moss" />
-              <span className="absolute -inset-1.5 rounded-full border border-moss/40" />
-            </span>
-            <span className="flex flex-col leading-tight">
-              <span className="font-display text-lg tracking-tight">{brand.product}</span>
-              <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-                {brand.supportLine}
-              </span>
-            </span>
-          </Link>
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full bg-background">
+        <AppSidebar />
 
-          <nav aria-label="Navegação principal" className="hidden md:block">
-            <ul className="flex items-center gap-1">
-              {navItems.map((item) => (
-                <li key={item.to}>
-                  <Link
-                    to={item.to}
-                    className="rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
-                    activeOptions={{ exact: item.to === "/" }}
-                    activeProps={{ className: "text-foreground bg-surface-raised" }}
-                  >
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
+        <SidebarInset className="flex min-h-screen flex-1 flex-col">
+          <header className="sticky top-0 z-40 flex h-12 items-center border-b border-hairline bg-background/85 px-3 backdrop-blur-md">
+            <SidebarTrigger aria-label="Alternar menu" />
+          </header>
 
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <Link
-              to="/treinar"
-              className="hidden rounded-md border border-gold/35 px-3 py-2 text-sm text-gold transition-colors hover:bg-gold-soft md:inline-flex"
-            >
-              Iniciar treinamento
-            </Link>
-          </div>
-        </div>
-      </header>
+          <main className="flex-1">{children}</main>
 
-      <main className="flex-1 pb-24 md:pb-0">{children}</main>
-
-      <footer className="hidden border-t border-hairline py-8 md:block">
-        <div className="mx-auto flex max-w-6xl flex-col gap-2 px-8 text-xs text-muted-foreground">
-          <p>
-            {brand.product} · {brand.supportLine}
-          </p>
-          <p>Ambiente de simulação. Não substitui julgamento clínico real.</p>
-        </div>
-      </footer>
-
-      {/* Mobile: navegação inferior */}
-      <nav
-        aria-label="Navegação principal"
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-hairline bg-surface-deep/95 backdrop-blur-md md:hidden"
-      >
-        <ul className="mx-auto flex max-w-md items-stretch justify-between px-2 pb-[env(safe-area-inset-bottom)]">
-          {navItems.map((item) => (
-            <li key={item.to} className="flex-1">
-              <Link
-                to={item.to}
-                activeOptions={{ exact: item.to === "/" }}
-                activeProps={{ className: "text-foreground" }}
-                className="flex flex-col items-center gap-1 px-1 py-3 text-[11px] text-muted-foreground transition-colors"
-              >
-                <item.icon aria-hidden className="size-5" />
-                <span>{item.label}</span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
-    </div>
+          <footer className="hidden border-t border-hairline py-8 md:block">
+            <div className="mx-auto flex max-w-6xl flex-col gap-2 px-8 text-xs text-muted-foreground">
+              <p>
+                {brand.product} · {brand.supportLine}
+              </p>
+              <p>Ambiente de simulação. Não substitui julgamento clínico real.</p>
+            </div>
+          </footer>
+        </SidebarInset>
+      </div>
+    </SidebarProvider>
   );
 }
