@@ -19,8 +19,10 @@ export type TrainingConfig = {
   themeId: string;
   levelId: LevelId;
   durationId: string;
-  /** Como o Sombra responde (UI/config nesta fase — sem áudio real). */
-  interactionMode: InteractionMode;
+  /** Como o SOMBRA responde (saída). Independente da entrada do trainee. */
+  shadowOutputMode: ShadowOutputMode;
+  /** Como o TRAINEE responde (entrada). Independente da saída do Sombra. */
+  traineeInputMode: TraineeInputMode;
   /** Apresentação de voz apenas; não altera comportamento clínico. */
   voicePreference: VoicePreference;
   /** Estilo de comunicação e pressão; nunca altera a verdade médica do caso. */
@@ -38,6 +40,11 @@ export type TrainingSession = {
   remainingSeconds: number;
   voiceState: VoiceState;
   completed: boolean;
+  /**
+   * Entradas do trainee (voz e texto convergem aqui). O conteúdo original nunca
+   * é descartado — auditoria, debugging, avaliação e debriefing dependem dele.
+   */
+  traineeInputs: TraineeInput[];
 };
 
 export type MockClinicalCase = {
