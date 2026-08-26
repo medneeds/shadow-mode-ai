@@ -61,25 +61,26 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Fluxo único de conclusão (manual e automático usam esta função).
-  const completeRef = useRef<TrainingSession | null>(null);
+  const sessionRef = useRef<TrainingSession | null>(null);
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
+
   const finishSession = useCallback(() => {
-    let finished: TrainingSession | null = null;
-    setSession((prev) => {
-      if (!prev) return prev;
-      finished = {
-        ...prev,
-        status: "finished",
-        voiceState: "finished",
-        finishedAt: Date.now(),
-        completed: true,
-      };
-      return finished;
-    });
-    if (finished) {
-      completeRef.current = finished;
-      setLastCompleted(finished);
-    }
-    return finished ?? completeRef.current;
+    const current = sessionRef.current;
+    if (!current) return null;
+    if (current.status === "finished") return current;
+    const finished: TrainingSession = {
+      ...current,
+      status: "finished",
+      voiceState: "finished",
+      finishedAt: Date.now(),
+      completed: true,
+    };
+    sessionRef.current = finished;
+    setSession(finished);
+    setLastCompleted(finished);
+    return finished;
   }, []);
 
   const clearSession = useCallback(() => setSession(null), []);
@@ -104,7 +105,6 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
             finishedAt: Date.now(),
             completed: true,
           };
-          completeRef.current = finished;
           setLastCompleted(finished);
           return finished;
         }
