@@ -252,12 +252,13 @@ type StateTarget = {
 
 const STATE_TARGETS: Record<VoiceState, StateTarget> = {
   idle: { ampFloor: 0.1, ampGain: 0, scale: 1, speed: 0.18, core: 0.5, glow: 0.42 },
-  listening: { ampFloor: 0.12, ampGain: 0.9, scale: 1.04, speed: 0.32, core: 0.78, glow: 0.6 },
+  listening: { ampFloor: 0.1, ampGain: 1.55, scale: 1.02, speed: 0.34, core: 0.78, glow: 0.6 },
   processing: { ampFloor: 0.16, ampGain: 0, scale: 0.86, speed: 0.75, core: 0.66, glow: 0.5 },
-  speaking: { ampFloor: 0.16, ampGain: 1, scale: 1.1, speed: 0.42, core: 1, glow: 0.9 },
+  speaking: { ampFloor: 0.14, ampGain: 1.5, scale: 1.06, speed: 0.44, core: 1, glow: 0.9 },
   paused: { ampFloor: 0.02, ampGain: 0, scale: 0.97, speed: 0.05, core: 0.32, glow: 0.2 },
   finished: { ampFloor: 0.04, ampGain: 0, scale: 0.95, speed: 0.08, core: 0.38, glow: 0.26 },
 };
+
 
 function clamp(value: number) {
   return Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : 0;
