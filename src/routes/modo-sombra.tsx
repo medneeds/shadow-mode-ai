@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowUp, Mic, MicOff, Pause, Play, Square, Volume2, VolumeX } from "lucide-react";
 
 import { VoicePresence } from "@/components/shadow/VoicePresence";
+import { PresenceStatus } from "@/components/shadow/PresenceStatus";
+
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { PageSection, SectionHeading } from "@/components/ui/section";
