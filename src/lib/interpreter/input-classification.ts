@@ -24,10 +24,7 @@ import type { RecognizedMetaCommand } from "./meta-command";
 export type InterpreterPhase = "pre_station" | "active_station";
 
 export type InputClassificationKind =
-  | "meta_command"
-  | "configuration_intent"
-  | "clinical_input"
-  | "unclassified";
+  "meta_command" | "configuration_intent" | "clinical_input" | "unclassified";
 
 export type InputClassificationRequest = {
   /** Texto original (digitado ou transcrito). Nunca é descartado. */
