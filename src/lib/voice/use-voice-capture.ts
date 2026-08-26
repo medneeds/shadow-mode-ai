@@ -33,6 +33,17 @@ const MIN_UTTERANCE_MS = 350;
 const MAX_UTTERANCE_MS = 20000;
 const SPEECH_THRESHOLD = 0.018;
 
+/**
+ * CALIBRAÇÃO DO RITMO — silenciosa, sem controle na interface.
+ * Se o usuário volta a falar logo após um enunciado ter sido fechado, ele ainda
+ * estava pensando: a janela de silêncio cresce. Se ele sempre encerra e demora,
+ * a janela volta lentamente ao padrão. Nada disso altera clínica ou avaliação.
+ */
+const SILENCE_MIN = 650;
+const SILENCE_MAX = 1900;
+const RESUME_FAST_MS = 1100;
+
+
 export function useVoiceCapture({ onUtterance, onSpeechStart, suspended }: Options) {
   const [status, setStatus] = useState<CaptureStatus>("off");
   const [amplitude, setAmplitude] = useState(0);
@@ -54,6 +65,11 @@ export function useVoiceCapture({ onUtterance, onSpeechStart, suspended }: Optio
   const lastPublishRef = useRef(0);
   const onUtteranceRef = useRef(onUtterance);
   const onSpeechStartRef = useRef(onSpeechStart);
+  /** Janela de silêncio adaptada ao ritmo do usuário. */
+  const silenceRef = useRef(SILENCE_MS);
+  const lastFinalizeAtRef = useRef(0);
+  /** Push-to-talk: grava enquanto o gesto estiver ativo, sem VAD. */
+  const forcedRef = useRef(false);
 
   useEffect(() => {
     suspendedRef.current = Boolean(suspended);
@@ -94,6 +110,7 @@ export function useVoiceCapture({ onUtterance, onSpeechStart, suspended }: Optio
     const chunks = chunksRef.current;
     chunksRef.current = [];
     speakingRef.current = false;
+    lastFinalizeAtRef.current = performance.now();
     const durationMs = (chunks.reduce((n, c) => n + c.length, 0) / sampleRate) * 1000;
     if (durationMs < MIN_UTTERANCE_MS) return;
     const blob = pcmToWav(chunks, sampleRate);
@@ -160,10 +177,26 @@ export function useVoiceCapture({ onUtterance, onSpeechStart, suspended }: Optio
         if (suspendedRef.current) return;
 
         const now = performance.now();
+
+        // Push-to-talk: enquanto o gesto estiver ativo, tudo é gravado e nada
+        // é fechado por silêncio — o usuário decide o fim ao soltar.
+        if (forcedRef.current) {
+          chunksRef.current.push(new Float32Array(input));
+          return;
+        }
+
         if (rms > SPEECH_THRESHOLD) {
           if (!speakingRef.current) {
             speakingRef.current = true;
             startedAtRef.current = now;
+            // Retomou logo depois de fechar? Era pausa de raciocínio: alarga.
+            const gap = now - lastFinalizeAtRef.current;
+            if (lastFinalizeAtRef.current > 0) {
+              silenceRef.current =
+                gap < RESUME_FAST_MS
+                  ? Math.min(SILENCE_MAX, silenceRef.current + 220)
+                  : Math.max(SILENCE_MIN, silenceRef.current - 60);
+            }
             onSpeechStartRef.current?.();
           }
           lastVoiceAtRef.current = now;
@@ -174,7 +207,7 @@ export function useVoiceCapture({ onUtterance, onSpeechStart, suspended }: Optio
 
         if (speakingRef.current) {
           chunksRef.current.push(new Float32Array(input));
-          if (now - lastVoiceAtRef.current > SILENCE_MS) finalize(ctx.sampleRate);
+          if (now - lastVoiceAtRef.current > silenceRef.current) finalize(ctx.sampleRate);
         }
       };
 
@@ -196,6 +229,32 @@ export function useVoiceCapture({ onUtterance, onSpeechStart, suspended }: Optio
   // Nenhum microfone permanece ativo após desmontar o componente.
   useEffect(() => teardown, [teardown]);
 
+  /** Segurar para falar: garante o stream e grava até soltar. */
+  const holdStart = useCallback(async () => {
+    if (!streamRef.current) await start();
+    if (!contextRef.current) return;
+    chunksRef.current = [];
+    speakingRef.current = true;
+    startedAtRef.current = performance.now();
+    forcedRef.current = true;
+    onSpeechStartRef.current?.();
+  }, [start]);
+
+  const holdEnd = useCallback(
+    (canceled?: boolean) => {
+      if (!forcedRef.current) return;
+      forcedRef.current = false;
+      const ctx = contextRef.current;
+      if (canceled || !ctx) {
+        chunksRef.current = [];
+        speakingRef.current = false;
+        return;
+      }
+      finalize(ctx.sampleRate);
+    },
+    [finalize],
+  );
+
   return {
     status,
     amplitude,
@@ -205,6 +264,8 @@ export function useVoiceCapture({ onUtterance, onSpeechStart, suspended }: Optio
     active: status === "listening",
     start,
     stop,
+    holdStart,
+    holdEnd,
     clearMessage: () => setMessage(null),
   };
 }

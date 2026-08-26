@@ -5,6 +5,7 @@ import { ArrowUp, Mic, MicOff, Pause, Play, Square, Volume2, VolumeX } from "luc
 
 import { VoicePresence } from "@/components/shadow/VoicePresence";
 import { PresenceStatus } from "@/components/shadow/PresenceStatus";
+import { PresenceControl } from "@/components/shadow/PresenceControl";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
@@ -456,14 +457,38 @@ function ShadowRoom() {
           {paused ? "Estação pausada" : (lastShadow?.text ?? "")}
         </p>
 
-        <VoicePresence
-          state={voiceState}
+        <PresenceControl
+          onTap={() => speech.stop()}
+          onDoubleTap={wantsVoiceInput && !voiceInputBroken ? toggleMic : undefined}
+          onHoldStart={
+            wantsVoiceInput && !voiceInputBroken ? () => void capture.holdStart() : undefined
+          }
+          onHoldEnd={
+            wantsVoiceInput && !voiceInputBroken
+              ? (canceled) => capture.holdEnd(canceled)
+              : undefined
+          }
+          onSilentHold={() => (paused ? resumeSession() : pauseSession())}
           getAmplitude={getAmplitude}
-          pace={profilePace[config.trainerProfile] ?? 1}
-          className="-my-4"
-        />
+          disabled={status === "finished"}
+          hint={
+            paused
+              ? "Segure para retomar"
+              : capture.active
+                ? "Toque duplo desliga o microfone"
+                : "Toque duplo liga o microfone · segure para falar"
+          }
+        >
+          <VoicePresence
+            state={voiceState}
+            getAmplitude={getAmplitude}
+            pace={profilePace[config.trainerProfile] ?? 1}
+            className="-my-4"
+          />
+        </PresenceControl>
 
         <PresenceStatus state={voiceState} className="mt-1" />
+
 
 
 

@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowUp, Mic, MicOff, SlidersHorizontal } from "lucide-react";
+import { ArrowUp, SlidersHorizontal } from "lucide-react";
 
 import { useVoiceCapture } from "@/lib/voice/use-voice-capture";
 import { useShadowSpeech } from "@/lib/voice/use-shadow-speech";
@@ -12,6 +12,8 @@ import type { TraineeInputSource } from "@/lib/trainee-input";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { VoicePresence } from "@/components/shadow/VoicePresence";
+import { PresenceControl } from "@/components/shadow/PresenceControl";
+import { SetupChips } from "@/components/shadow/SetupChips";
 import { Button } from "@/components/ui/button";
 import { OptionChip, PageSection } from "@/components/ui/section";
 import { durations, levels, themes, type LevelId } from "@/lib/shadow-content";
@@ -193,6 +195,17 @@ function TrainingSetup() {
   const lastShadow = [...setupMessages].reverse().find((m) => m.role === "shadow");
   const earlier = setupMessages.slice(-4, -1);
   const question = nextSetupQuestion(providedFields);
+  const ready = question === null;
+
+  const micFailedEarly =
+    capture.status === "denied" || capture.status === "error" || capture.status === "unsupported";
+  const canUseVoice = wantsVoiceInput && !(micFailedEarly || availability?.speechToText === false);
+
+  const toggleMic = () => {
+    setVoiceNotice(null);
+    if (capture.active || capture.status === "starting") capture.stop();
+    else void capture.start();
+  };
 
   return (
     <AppShell>
@@ -204,54 +217,52 @@ function TrainingSetup() {
             </p>
           )}
 
-          <VoicePresence
-            state={
-              speech.speaking
-                ? "speaking"
-                : busy
-                  ? "processing"
+          <PresenceControl
+            onTap={() => (ready ? handleStart() : speech.stop())}
+            onDoubleTap={canUseVoice ? toggleMic : undefined}
+            onHoldStart={canUseVoice ? () => void capture.holdStart() : undefined}
+            onHoldEnd={canUseVoice ? (canceled) => capture.holdEnd(canceled) : undefined}
+            getAmplitude={() => capture.getAmplitude()}
+            hint={
+              ready
+                ? "Toque para entrar no Modo Sombra"
+                : canUseVoice
+                  ? capture.active
+                    ? "Ouvindo — toque duplo desliga o microfone"
+                    : "Toque duplo liga o microfone · segure para falar"
+                  : undefined
+            }
+          >
+            <VoicePresence
+              state={
+                speech.speaking
+                  ? "speaking"
+                  : busy
+                    ? "processing"
+                    : capture.active
+                      ? "listening"
+                      : "idle"
+              }
+              getAmplitude={() =>
+                speech.speaking
+                  ? speech.getAmplitude()
                   : capture.active
-                    ? "listening"
-                    : "idle"
-            }
-            getAmplitude={() =>
-              speech.speaking ? speech.getAmplitude() : capture.active ? capture.getAmplitude() : 0
-            }
-          />
+                    ? capture.getAmplitude()
+                    : 0
+              }
+            />
+          </PresenceControl>
 
           <p aria-live="polite" className="mt-2 max-w-lg font-display text-xl leading-relaxed">
             {lastShadow?.text ?? setupOpeningQuestion}
           </p>
-
-          {wantsVoiceInput && !voiceInputBroken && (
-            <button
-              type="button"
-              onClick={() => {
-                setVoiceNotice(null);
-                if (capture.active || capture.status === "starting") capture.stop();
-                else void capture.start();
-              }}
-              aria-label={capture.active ? "Desativar microfone" : "Falar com o Sombra"}
-              aria-pressed={capture.active}
-              title={capture.active ? "Microfone ativo" : "Microfone"}
-              className={cn(
-                "mt-6 flex size-12 items-center justify-center rounded-full text-muted-foreground/70 transition-all duration-200 hover:scale-[1.03] hover:bg-surface-raised/50 hover:text-foreground active:scale-95",
-                capture.active && "bg-surface-raised/60 text-foreground",
-              )}
-            >
-              {capture.active ? (
-                <Mic aria-hidden className="size-5" />
-              ) : (
-                <MicOff aria-hidden className="size-5" />
-              )}
-            </button>
-          )}
 
           {(voiceNotice ?? capture.message) && (
             <p className="mt-3 text-[11px] text-muted-foreground" aria-live="polite">
               {voiceNotice ?? capture.message}
             </p>
           )}
+
 
           <form
             onSubmit={(e) => {
@@ -279,7 +290,7 @@ function TrainingSetup() {
               }}
               rows={1}
               disabled={busy}
-              placeholder="O que vamos treinar hoje?"
+              placeholder="Escreva ou fale…"
               className="max-h-24 flex-1 resize-none bg-transparent py-2 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none disabled:opacity-50"
             />
             <button
@@ -295,25 +306,32 @@ function TrainingSetup() {
             </button>
           </form>
 
-          {/* Configuração é contexto, não um painel de ajustes. */}
-          <div className="mt-10 flex flex-col items-center gap-1">
-            <p className="font-display text-sm text-foreground">{configSummary(config)}</p>
-            <p className="text-xs text-muted-foreground/70">{configSecondaryLine(config)}</p>
-            <div className="mt-5 flex items-center gap-4">
-              <Button size="sm" onClick={handleStart} disabled={busy}>
-                Entrar no Modo Sombra
-              </Button>
-              <button
-                type="button"
-                onClick={() => setShowAdjust((v) => !v)}
-                aria-expanded={showAdjust}
-                className="flex items-center gap-1.5 rounded-md px-1 text-xs text-muted-foreground/70 transition-colors hover:text-foreground"
-              >
-                <SlidersHorizontal aria-hidden className="size-3.5" />
-                {showAdjust ? "Ocultar" : "Ajustar"}
-              </button>
-            </div>
+          {/* Configuração é contexto: chips do que já foi dito + atalhos. */}
+          <div className="mt-8 flex flex-col items-center gap-4">
+            <SetupChips config={config} provided={providedFields} onPick={setConfig} />
+
+            {ready ? (
+              <div className="flex flex-col items-center gap-2">
+                <Button size="sm" onClick={handleStart} disabled={busy}>
+                  Entrar no Modo Sombra
+                </Button>
+                <p className="text-[11px] text-muted-foreground/60">{configSecondaryLine(config)}</p>
+              </div>
+            ) : (
+              <p className="text-[11px] text-muted-foreground/60">{configSummary(config)}</p>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setShowAdjust((v) => !v)}
+              aria-expanded={showAdjust}
+              className="flex items-center gap-1.5 rounded-md px-1 text-xs text-muted-foreground/60 transition-colors hover:text-foreground"
+            >
+              <SlidersHorizontal aria-hidden className="size-3.5" />
+              {showAdjust ? "Ocultar ajustes" : "Mais ajustes"}
+            </button>
           </div>
+
         </div>
       </PageSection>
 
