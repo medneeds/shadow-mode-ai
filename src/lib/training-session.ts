@@ -25,6 +25,8 @@ export type TrainingConfig = {
   traineeInputMode: TraineeInputMode;
   /** Apresentação de voz apenas; não altera comportamento clínico. */
   voicePreference: VoicePreference;
+  /** Ritmo da síntese de voz. Independente do perfil do treinador. */
+  speechRate: SpeechRate;
   /** Estilo de comunicação e pressão; nunca altera a verdade médica do caso. */
   trainerProfile: TrainerProfile;
 };
