@@ -30,6 +30,7 @@ import {
 } from "@/lib/shadow/setup-flow";
 import { recentContext } from "@/lib/shadow/conversation";
 import { interpretSetupTurn } from "@/lib/shadow/shadow.functions";
+import { cn } from "@/lib/utils";
 import { pageTitle } from "@/lib/brand";
 
 export const Route = createFileRoute("/treinar")({
