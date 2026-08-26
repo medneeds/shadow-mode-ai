@@ -16,6 +16,7 @@ import { Route as ModoSombraRouteImport } from './routes/modo-sombra'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as ResultadoRouteImport } from './routes/resultado'
 import { Route as TreinarRouteImport } from './routes/treinar'
+import { Route as DevMotorClinicoRouteImport } from './routes/dev.motor-clinico'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -52,6 +53,11 @@ const TreinarRoute = TreinarRouteImport.update({
   path: '/treinar',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DevMotorClinicoRoute = DevMotorClinicoRouteImport.update({
+  id: '/dev/motor-clinico',
+  path: '/dev/motor-clinico',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -61,6 +67,7 @@ export interface FileRoutesByFullPath {
   '/perfil': typeof PerfilRoute
   '/resultado': typeof ResultadoRoute
   '/treinar': typeof TreinarRoute
+  '/dev/motor-clinico': typeof DevMotorClinicoRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -70,6 +77,7 @@ export interface FileRoutesByTo {
   '/perfil': typeof PerfilRoute
   '/resultado': typeof ResultadoRoute
   '/treinar': typeof TreinarRoute
+  '/dev/motor-clinico': typeof DevMotorClinicoRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -80,6 +88,7 @@ export interface FileRoutesById {
   '/perfil': typeof PerfilRoute
   '/resultado': typeof ResultadoRoute
   '/treinar': typeof TreinarRoute
+  '/dev/motor-clinico': typeof DevMotorClinicoRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -91,6 +100,7 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/resultado'
     | '/treinar'
+    | '/dev/motor-clinico'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -100,6 +110,7 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/resultado'
     | '/treinar'
+    | '/dev/motor-clinico'
   id:
     | '__root__'
     | '/'
@@ -109,6 +120,7 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/resultado'
     | '/treinar'
+    | '/dev/motor-clinico'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -119,6 +131,7 @@ export interface RootRouteChildren {
   PerfilRoute: typeof PerfilRoute
   ResultadoRoute: typeof ResultadoRoute
   TreinarRoute: typeof TreinarRoute
+  DevMotorClinicoRoute: typeof DevMotorClinicoRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -172,6 +185,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TreinarRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dev/motor-clinico': {
+      id: '/dev/motor-clinico'
+      path: '/dev/motor-clinico'
+      fullPath: '/dev/motor-clinico'
+      preLoaderRoute: typeof DevMotorClinicoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -183,6 +203,7 @@ const rootRouteChildren: RootRouteChildren = {
   PerfilRoute: PerfilRoute,
   ResultadoRoute: ResultadoRoute,
   TreinarRoute: TreinarRoute,
+  DevMotorClinicoRoute: DevMotorClinicoRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
