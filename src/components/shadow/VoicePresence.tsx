@@ -269,7 +269,7 @@ function wavePath(layer: Layer, scale: number, amp: number, phase: number) {
   const base = layer.radius * scale;
   // Termo de forma constante: as camadas nunca são círculos perfeitos,
   // mesmo em silêncio — a amplitude real apenas expande o que já é orgânico.
-  const gain = layer.gain * (0.28 + amp * 0.9);
+  const gain = layer.gain * (0.26 + amp * 1.35);
   let d = "";
   for (let i = 0; i <= POINTS; i += 1) {
     const theta = (i / POINTS) * Math.PI * 2;
