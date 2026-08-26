@@ -1,23 +1,36 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { PageSection, SectionHeading } from "@/components/ui/section";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { levels } from "@/lib/shadow-content";
+import { Button } from "@/components/ui/button";
+import { OnboardingFlow } from "@/components/shadow/OnboardingFlow";
+import { useTrainingSession } from "@/lib/session-store";
+import {
+  careerStages,
+  clearDoctorProfile,
+  comfortOptions,
+  loadDoctorProfile,
+  profileDefaults,
+  stressStyles,
+  toneOptions,
+  type DoctorProfile,
+} from "@/lib/profile/doctor-profile";
+import { pageTitle } from "@/lib/brand";
 
 export const Route = createFileRoute("/perfil")({
   head: () => ({
     meta: [
-      { title: "Perfil e preferências — Modo Sombra | By Medneeds" },
+      { title: pageTitle("Perfil do médico") },
       {
         name: "description",
-        content: "Ajuste nível padrão, preferências de voz e acessibilidade do Modo Sombra.",
+        content:
+          "Seu perfil de treinamento: momento de carreira, estilo sob pressão, voz e tom do Sombra.",
       },
-      { property: "og:title", content: "Perfil e preferências — Modo Sombra | By Medneeds" },
+      { property: "og:title", content: pageTitle("Perfil do médico") },
       {
         property: "og:description",
-        content: "Preferências de treinamento, voz e acessibilidade.",
+        content: "Personalize a forma como o Sombra fala e treina com você.",
       },
     ],
   }),
@@ -25,64 +38,113 @@ export const Route = createFileRoute("/perfil")({
 });
 
 function ProfilePage() {
+  const { setConfig } = useTrainingSession();
+  const [profile, setProfile] = useState<DoctorProfile | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    setProfile(loadDoctorProfile());
+    setLoaded(true);
+  }, []);
+
+  const complete = (next: DoctorProfile) => {
+    setProfile(next);
+    setConfig(profileDefaults(next));
+    setEditing(false);
+  };
+
+  if (editing) {
+    return (
+      <AppShell>
+        <PageSection>
+          <OnboardingFlow initial={profile} onComplete={complete} onSkip={() => setEditing(false)} />
+        </PageSection>
+      </AppShell>
+    );
+  }
+
+  const rows = profile
+    ? [
+        { label: "Momento", value: careerStages.find((s) => s.id === profile.stage)?.label },
+        { label: "Sob pressão", value: stressStyles.find((s) => s.id === profile.stress)?.label },
+        {
+          label: "Domínios",
+          value: profile.strengths.length > 0 ? profile.strengths.join(", ") : undefined,
+        },
+        {
+          label: "Escassez de recursos",
+          value: comfortOptions.find((c) => c.id === profile.scarcity)?.label,
+        },
+        {
+          label: "Raciocínio rápido",
+          value: comfortOptions.find((c) => c.id === profile.fastThinking)?.label,
+        },
+        { label: "Expectativa", value: profile.expectation ?? undefined },
+        {
+          label: "Voz do Sombra",
+          value:
+            profile.voicePreference === "male"
+              ? "Masculina"
+              : profile.voicePreference === "female"
+                ? "Feminina"
+                : undefined,
+        },
+        { label: "Tom", value: toneOptions.find((t) => t.id === profile.tone)?.label },
+      ]
+    : [];
+
   return (
     <AppShell>
       <PageSection>
         <SectionHeading
           eyebrow="Perfil"
-          title="Preferências"
-          description="Conta e autenticação serão ativadas em uma próxima etapa. Por enquanto, estas preferências são apenas visuais."
+          title="Como o Sombra treina com você"
+          description="Estas respostas ajustam linguagem, ritmo e padrões de configuração. Nunca alteram o caso clínico, a conduta correta nem a sua avaliação."
         />
 
-        <div className="mt-8 flex items-center gap-4">
-          <span
-            aria-hidden
-            className="flex size-14 items-center justify-center rounded-full border border-gold/40 font-display text-lg text-gold"
-          >
-            AB
-          </span>
-          <div>
-            <p className="text-sm text-foreground">Artur Batista</p>
-            <p className="text-xs text-muted-foreground">Nível intermediário · Emergência</p>
+        {loaded && !profile && (
+          <div className="mt-8 max-w-xl">
+            <p className="text-sm text-muted-foreground">
+              Você ainda não respondeu o perfil. São oito perguntas curtas — dá para pular
+              qualquer uma.
+            </p>
+            <Button className="mt-5" size="sm" onClick={() => setEditing(true)}>
+              Responder agora
+            </Button>
           </div>
-        </div>
+        )}
 
-        <div className="mt-12 max-w-xl">
-          <h3 className="text-lg">Nível padrão</h3>
-          <ul className="mt-4 divide-y divide-[color:var(--hairline)]">
-            {levels.map((level) => (
-              <li key={level.id} className="flex items-baseline justify-between gap-6 py-4">
-                <div>
-                  <p className="text-sm text-foreground">{level.label}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{level.audience}</p>
+        {profile && (
+          <div className="mt-8 max-w-xl">
+            <dl className="divide-y divide-[color:var(--hairline)]">
+              {rows.map((row) => (
+                <div key={row.label} className="flex items-baseline justify-between gap-6 py-4">
+                  <dt className="text-xs text-muted-foreground">{row.label}</dt>
+                  <dd className="text-right text-sm text-foreground">
+                    {row.value ?? <span className="text-muted-foreground/50">Não respondido</span>}
+                  </dd>
                 </div>
-                {level.id === "intermediario" && (
-                  <span className="rounded-full bg-moss-soft px-3 py-1 text-xs text-foreground">
-                    Selecionado
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
+              ))}
+            </dl>
 
-        <div className="mt-12 max-w-xl">
-          <h3 className="text-lg">Simulação e acessibilidade</h3>
-          <div className="mt-4 divide-y divide-[color:var(--hairline)]">
-            {[
-              { id: "voice-hints", label: "Dicas por voz durante a estação", checked: false },
-              { id: "transcript", label: "Exibir transcrição da conversa", checked: true },
-              { id: "reduced-motion", label: "Reduzir animações", checked: false },
-            ].map((pref) => (
-              <div key={pref.id} className="flex items-center justify-between gap-6 py-4">
-                <Label htmlFor={pref.id} className="text-sm font-normal">
-                  {pref.label}
-                </Label>
-                <Switch id={pref.id} defaultChecked={pref.checked} />
-              </div>
-            ))}
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Button size="sm" onClick={() => setEditing(true)}>
+                Revisar respostas
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  clearDoctorProfile();
+                  setProfile(null);
+                }}
+              >
+                Apagar perfil
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
       </PageSection>
     </AppShell>
   );
