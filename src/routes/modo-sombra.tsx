@@ -7,6 +7,8 @@ import { VoicePresence } from "@/components/shadow/VoicePresence";
 import { PresenceStatus } from "@/components/shadow/PresenceStatus";
 import { PresenceControl } from "@/components/shadow/PresenceControl";
 import { ComposerMic } from "@/components/shadow/ComposerMic";
+import { AmbientTranscript } from "@/components/shadow/AmbientTranscript";
+
 
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
