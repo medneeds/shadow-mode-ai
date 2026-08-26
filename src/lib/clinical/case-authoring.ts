@@ -358,7 +358,7 @@ export function trigger(
     atClinicalSecond,
     conditions: spec.conditions ?? [{ kind: "always" }],
     source: spec.source ?? "time_trigger",
-    eventType: spec.eventType ?? "clinical_deterioration",
+    eventType: spec.eventType ?? "physiologic_deterioration",
     fact,
     once: spec.once ?? true,
   };

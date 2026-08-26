@@ -23,8 +23,9 @@ import {
   type TraineeInputSource,
 } from "./trainee-input";
 import { advanceClinicalTime, initializeCase } from "./clinical/clinical-case-engine";
-import type { ClinicalCaseRuntime } from "./clinical/clinical-case-types";
+import type { ClinicalCaseDefinition, ClinicalCaseRuntime } from "./clinical/clinical-case-types";
 import { referenceCase } from "./clinical/reference-cases";
+import { selectCase } from "./clinical/selection-engine";
 import { createMessage, type ShadowMessage, type ShadowMessageRole } from "./shadow/conversation";
 import type { ConfigField } from "./shadow/setup-flow";
 
@@ -65,6 +66,10 @@ type SessionContextValue = {
   consumePendingFacts: () => string[];
   /** Runtime clínico da última estação concluída — base da avaliação. */
   lastRuntime: ClinicalCaseRuntime | null;
+  /** Caso (com variante aplicada) da estação atual. */
+  caseDefinition: ClinicalCaseDefinition;
+  /** Caso da última estação concluída — base do resultado e do debriefing. */
+  lastCaseDefinition: ClinicalCaseDefinition;
 };
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -80,6 +85,10 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
   const [pendingFacts, setPendingFacts] = useState<string[]>([]);
   const [lastRuntime, setLastRuntime] = useState<ClinicalCaseRuntime | null>(null);
   const runtimeRef = useRef<ClinicalCaseRuntime | null>(null);
+  const [caseDefinition, setCaseDefinition] = useState<ClinicalCaseDefinition>(referenceCase);
+  const [lastCaseDefinition, setLastCaseDefinition] = useState<ClinicalCaseDefinition>(referenceCase);
+  const caseRef = useRef<ClinicalCaseDefinition>(referenceCase);
+  const recentCaseIdsRef = useRef<string[]>([]);
 
   const setConfig = useCallback((next: Partial<TrainingConfig>) => {
     setConfigState((prev) => ({ ...prev, ...next }));
@@ -118,8 +127,19 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
   }, [pendingFacts]);
 
   const startSession = useCallback(() => {
-    const initial = initializeCase(referenceCase);
-    setSession(createSession(config));
+    const selection = selectCase({
+      themeId: config.themeId,
+      levelId: config.levelId,
+      durationId: config.durationId,
+      excludeCaseIds: recentCaseIdsRef.current,
+    });
+    const def = selection.definition;
+    caseRef.current = def;
+    setCaseDefinition(def);
+    setLastCaseDefinition(def);
+    recentCaseIdsRef.current = [def.id, ...recentCaseIdsRef.current].slice(0, 3);
+    const initial = initializeCase(def);
+    setSession(createSession(config, def.id));
     runtimeRef.current = initial;
     setRuntimeState(initial);
     setRoomMessages([]);
@@ -214,7 +234,7 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
     const interval = window.setInterval(() => {
       setRuntimeState((prevRuntime) => {
         if (!prevRuntime) return prevRuntime;
-        const result = advanceClinicalTime(prevRuntime, 1, referenceCase);
+        const result = advanceClinicalTime(prevRuntime, 1, caseRef.current);
         if (result.newEvents.length > 0) {
           setPendingFacts((prev) => [...prev, ...result.newEvents.map((e) => e.fact)]);
         }
@@ -269,6 +289,8 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
       pendingFacts,
       consumePendingFacts,
       lastRuntime,
+      caseDefinition,
+      lastCaseDefinition,
     }),
     [
       config,
@@ -294,6 +316,8 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
       pendingFacts,
       consumePendingFacts,
       lastRuntime,
+      caseDefinition,
+      lastCaseDefinition,
     ],
   );
 

@@ -127,7 +127,7 @@ export const opioidIntoxicationCase = defineCase({
         },
         reassess_patient: {
           immediateFact: "Você reavalia o paciente à beira do leito.",
-          eventType: "reassessment_result",
+          eventType: "vital_signs_change",
         },
         secure_airway: {
           immediateFact: "Via aérea definitiva estabelecida com sequência rápida de intubação.",
@@ -238,7 +238,7 @@ export const opioidIntoxicationCase = defineCase({
         ],
         statePatch: { consciousness: "somnolent", vitals: { respiratoryRate: 8 }, addTags: ["recorrência"] },
         branchId: "branch-recorrencia",
-        eventType: "clinical_deterioration",
+        eventType: "physiologic_deterioration",
       },
     ),
   ],
@@ -351,7 +351,7 @@ export const opioidIntoxicationCase = defineCase({
   scoring: {
     caseVersion: "1.0.0",
     scoringVersion: "phase-06",
-    domains: ["initial_approach", "investigation", "treatment", "reassessment", "safety", "disposition"],
+    domains: ["initial_approach", "investigations", "treatment", "reassessment", "safety", "disposition"],
     unsafeActions: [
       {
         actionId: "disposition_discharge",

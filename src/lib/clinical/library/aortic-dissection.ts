@@ -124,7 +124,7 @@ export const aorticDissectionCase = defineCase({
         },
         reassess_vitals: {
           immediateFact: "Você reafere a pressão nos dois braços e checa os pulsos.",
-          eventType: "reassessment_result",
+          eventType: "vital_signs_change",
         },
         disposition_or: {
           immediateFact:
@@ -175,7 +175,7 @@ export const aorticDissectionCase = defineCase({
         vitals: { systolicBP: 92, diastolicBP: 58, heartRate: 124 },
         addTags: ["sangramento", "deterioração"],
       },
-      eventType: "clinical_deterioration",
+      eventType: "physiologic_deterioration",
     }),
   ],
   examFindings: [
@@ -299,7 +299,7 @@ export const aorticDissectionCase = defineCase({
   scoring: {
     caseVersion: "1.0.0",
     scoringVersion: "phase-06",
-    domains: ["diagnostic_reasoning", "investigation", "treatment", "prioritization", "safety", "disposition"],
+    domains: ["diagnostic_reasoning", "investigations", "treatment", "prioritization", "safety", "disposition"],
     unsafeActions: [
       {
         actionId: "administer_anticoagulation",

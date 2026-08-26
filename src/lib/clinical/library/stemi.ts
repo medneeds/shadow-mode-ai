@@ -133,7 +133,7 @@ export const stemiCase = defineCase({
         },
         reassess_vitals: {
           immediateFact: "Você reafere os sinais vitais à beira do leito.",
-          eventType: "reassessment_result",
+          eventType: "vital_signs_change",
         },
         disposition_cathlab: {
           immediateFact:
@@ -177,7 +177,7 @@ export const stemiCase = defineCase({
         vitals: { systolicBP: 68, diastolicBP: 40, heartRate: 46 },
         addTags: ["hipotensão iatrogênica", "deterioração"],
       },
-      eventType: "clinical_deterioration",
+      eventType: "physiologic_deterioration",
     }),
     action("administer_fluid_bolus", {
       label: "Administrar volume intravenoso",
@@ -244,7 +244,7 @@ export const stemiCase = defineCase({
         statePatch: { addTags: ["reperfusão tardia"] },
         branchId: "branch-deterioracao",
         source: "omission_trigger",
-        eventType: "clinical_deterioration",
+        eventType: "physiologic_deterioration",
       },
     ),
   ],
@@ -326,7 +326,7 @@ export const stemiCase = defineCase({
   scoring: {
     caseVersion: "1.0.0",
     scoringVersion: "phase-06",
-    domains: ["initial_approach", "investigation", "treatment", "prioritization", "safety", "disposition"],
+    domains: ["initial_approach", "investigations", "treatment", "prioritization", "safety", "disposition"],
     unsafeActions: [
       {
         actionId: "administer_nitrate",

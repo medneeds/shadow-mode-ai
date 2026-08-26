@@ -106,7 +106,7 @@ export function formatClock(totalSeconds: number): string {
   return `${mm}:${ss}`;
 }
 
-export function createSession(config: TrainingConfig): TrainingSession {
+export function createSession(config: TrainingConfig, caseId?: string): TrainingSession {
   const durationSeconds = durationToSeconds(config.durationId);
   return {
     id:
@@ -114,7 +114,7 @@ export function createSession(config: TrainingConfig): TrainingSession {
         ? crypto.randomUUID()
         : `session-${Date.now()}`,
     config,
-    caseId: mockCase.id,
+    caseId: caseId ?? mockCase.id,
     status: "active",
     startedAt: Date.now(),
     finishedAt: null,

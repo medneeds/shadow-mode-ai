@@ -420,7 +420,7 @@ export type ClinicalCaseDefinition = {
    */
   variableVitals?: Partial<Record<keyof VitalSigns, number[]>>;
   /** Variante aplicada em runtime (reprodutibilidade). */
-  variantId?: string;
+  variantId?: string | null;
   /** Semente usada na randomização controlada (reprodutibilidade). */
   seed?: number;
   examFindings: ExamFinding[];

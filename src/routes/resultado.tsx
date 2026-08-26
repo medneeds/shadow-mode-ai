@@ -13,7 +13,6 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { MeterRow, PageSection, SectionHeading } from "@/components/ui/section";
-import { referenceCase } from "@/lib/clinical/reference-cases";
 import { useTrainingSession } from "@/lib/session-store";
 import { buildCompletedResult } from "@/lib/evaluation/completed-result";
 import { deterministicDebriefing } from "@/lib/evaluation/debrief-fallback";
@@ -46,13 +45,13 @@ export const Route = createFileRoute("/resultado")({
 });
 
 function ResultPage() {
-  const { session, lastCompleted, lastRuntime } = useTrainingSession();
+  const { session, lastCompleted, lastRuntime, lastCaseDefinition } = useTrainingSession();
   const completed = session?.completed ? session : lastCompleted;
 
   const result = useMemo<CompletedTrainingResult | null>(() => {
     if (!completed || !completed.completed || !lastRuntime) return null;
-    return buildCompletedResult(referenceCase, lastRuntime, completed);
-  }, [completed, lastRuntime]);
+    return buildCompletedResult(lastCaseDefinition, lastRuntime, completed);
+  }, [completed, lastRuntime, lastCaseDefinition]);
 
   if (!result || !completed) {
     return (
