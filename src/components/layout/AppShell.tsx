@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Home, Mic, History, BarChart3, User } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { brand } from "@/lib/brand";
 
 const navItems = [
@@ -47,12 +48,15 @@ export function AppShell({ children }: { children: ReactNode }) {
             </ul>
           </nav>
 
-          <Link
-            to="/treinar"
-            className="hidden rounded-md border border-gold/35 px-3 py-2 text-sm text-gold transition-colors hover:bg-gold-soft md:inline-flex"
-          >
-            Iniciar treinamento
-          </Link>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Link
+              to="/treinar"
+              className="hidden rounded-md border border-gold/35 px-3 py-2 text-sm text-gold transition-colors hover:bg-gold-soft md:inline-flex"
+            >
+              Iniciar treinamento
+            </Link>
+          </div>
         </div>
       </header>
 
