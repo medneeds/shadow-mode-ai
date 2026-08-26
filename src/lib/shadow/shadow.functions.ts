@@ -10,7 +10,7 @@
  */
 import { createServerFn } from "@tanstack/react-start";
 
-import { referenceCase } from "@/lib/clinical/reference-cases";
+import { getCaseById } from "@/lib/clinical/case-library";
 import { applyAction, buildAction } from "@/lib/clinical/clinical-case-engine";
 import type { ClinicalCaseRuntime } from "@/lib/clinical/clinical-case-types";
 import { interpretInput } from "@/lib/interpreter/interpret.server";
@@ -68,7 +68,7 @@ export const interpretSetupTurn = createServerFn({ method: "POST" })
     if (!llm) return empty;
 
     try {
-      const result = await interpretInput(llm, referenceCase, {
+      const result = await interpretInput(llm, getCaseById(null), {
         rawContent: data.rawContent,
         source: data.source,
         phase: "pre_station",
@@ -121,6 +121,8 @@ export const runClinicalTurn = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => clinicalTurnSchema.parse(data))
   .handler(async ({ data }) => {
     const runtime = data.runtime as ClinicalCaseRuntime;
+    // O caso da estação vem do runtime — a biblioteca é a fonte da verdade clínica.
+    const referenceCase = getCaseById(runtime.caseId);
     const base = {
       runtime,
       actions: [] as { actionId: string }[],
