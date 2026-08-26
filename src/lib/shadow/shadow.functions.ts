@@ -61,6 +61,7 @@ export const interpretSetupTurn = createServerFn({ method: "POST" })
       startSession: false,
       metaCommands: [] as MetaCommandDto[],
       shadowText: interpretationUnavailableReply as string | null,
+      speechText: speech(interpretationUnavailableReply),
     };
 
     const llm = optionalProvider();
