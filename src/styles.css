@@ -66,49 +66,51 @@
 :root {
   --radius: 0.5rem;
 
-  /* Deep Navy environment */
-  --background: oklch(0.176 0.026 245);
-  --foreground: oklch(0.95 0.005 90);
+  /* Ambiente neutro profundo (grafite) */
+  --background: oklch(0.178 0.004 250);
+  --foreground: oklch(0.95 0.003 90);
 
-  --surface: oklch(0.216 0.026 245);
-  --surface-raised: oklch(0.256 0.026 245);
-  --surface-deep: oklch(0.142 0.024 245);
-  --hairline: oklch(0.98 0.01 90 / 0.09);
+  --surface: oklch(0.218 0.004 250);
+  --surface-raised: oklch(0.258 0.004 250);
+  --surface-deep: oklch(0.144 0.004 250);
+  --hairline: oklch(0.98 0.005 90 / 0.09);
 
-  --card: oklch(0.216 0.026 245);
-  --card-foreground: oklch(0.95 0.005 90);
-  --popover: oklch(0.24 0.026 245);
-  --popover-foreground: oklch(0.95 0.005 90);
+  --card: oklch(0.218 0.004 250);
+  --card-foreground: oklch(0.95 0.003 90);
+  --popover: oklch(0.242 0.004 250);
+  --popover-foreground: oklch(0.95 0.003 90);
 
-  /* Off-white primary action on navy */
-  --primary: oklch(0.93 0.012 92);
-  --primary-foreground: oklch(0.176 0.026 245);
+  /* Off-white primary action */
+  --primary: oklch(0.93 0.004 92);
+  --primary-foreground: oklch(0.178 0.004 250);
 
-  --secondary: oklch(0.256 0.026 245);
-  --secondary-foreground: oklch(0.93 0.008 92);
+  --secondary: oklch(0.258 0.004 250);
+  --secondary-foreground: oklch(0.93 0.004 92);
 
-  --muted: oklch(0.24 0.022 245);
-  --muted-foreground: oklch(0.7 0.012 250);
+  --muted: oklch(0.242 0.004 250);
+  --muted-foreground: oklch(0.7 0.005 250);
 
-  --accent: oklch(0.28 0.028 245);
-  --accent-foreground: oklch(0.95 0.005 90);
+  --accent: oklch(0.282 0.005 250);
+  --accent-foreground: oklch(0.95 0.003 90);
 
-  --destructive: oklch(0.556 0.16 25);
-  --destructive-foreground: oklch(0.96 0.005 90);
+  --destructive: oklch(0.556 0.09 25);
+  --destructive-foreground: oklch(0.96 0.003 90);
 
-  --border: oklch(0.98 0.01 90 / 0.1);
-  --input: oklch(0.98 0.01 90 / 0.14);
-  --ring: oklch(0.62 0.06 138);
 
-  /* Moss Green */
-  --moss: oklch(0.53 0.055 138);
-  --moss-soft: oklch(0.53 0.055 138 / 0.22);
-  --moss-foreground: oklch(0.97 0.005 90);
+  --border: oklch(0.98 0.005 90 / 0.1);
+  --input: oklch(0.98 0.005 90 / 0.14);
+  --ring: oklch(0.72 0.004 250);
 
-  /* Muted Gold */
-  --gold: oklch(0.72 0.075 84);
-  --gold-soft: oklch(0.72 0.075 84 / 0.16);
-  --gold-foreground: oklch(0.18 0.026 245);
+  /* Estado/progresso — neutro claro (antes moss) */
+  --moss: oklch(0.74 0.006 250);
+  --moss-soft: oklch(0.74 0.006 250 / 0.16);
+  --moss-foreground: oklch(0.18 0.008 250);
+
+  /* Ênfase — neutro quente sóbrio (antes gold) */
+  --gold: oklch(0.82 0.008 85);
+  --gold-soft: oklch(0.82 0.008 85 / 0.12);
+  --gold-foreground: oklch(0.18 0.008 250);
+
 
   /*
    * Voice Presence — escopo EXCLUSIVO da visualização de voz.
