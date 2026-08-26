@@ -111,15 +111,18 @@ function ShadowRoom() {
     return () => controller.abort();
   }, [wantsVoiceInput, wantsVoiceOutput]);
 
-  /** Fala o texto CANÔNICO já exibido — nunca um segundo texto para o TTS. */
+  /**
+   * Fala o texto CANÔNICO já exibido. speechText é a MESMA resposta, apenas
+   * reescrita para soar natural na voz (unidades, siglas) — nunca outro conteúdo.
+   */
   const speakShadow = useCallback(
-    async (turnId: number, text: string) => {
+    async (turnId: number, text: string, speechText?: string | null) => {
       if (!wantsVoiceOutput || audioMuted || !availability?.textToSpeech) return;
       if (turnRef.current !== turnId) return;
       setVoiceState("speaking");
       const ok = await speech.speak({
         turnId: String(turnId),
-        text,
+        text: speechText || toSpeechText(text),
         voicePreference: config.voicePreference,
         speechRate: config.speechRate,
       });
