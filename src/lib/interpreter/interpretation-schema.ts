@@ -28,8 +28,26 @@ export const metaCommandTypes = [
   "change_speech_rate",
 ] as const;
 
+export const emotionalTones = [
+  "neutral",
+  "tense",
+  "frustrated",
+  "distracted",
+  "confident",
+] as const;
+
 export const interpretationSchema = z.object({
-  kind: z.enum(["configuration_intent", "meta_command", "clinical_input", "ambiguous"]),
+  kind: z.enum([
+    "configuration_intent",
+    "meta_command",
+    "clinical_input",
+    "relational",
+    "ambiguous",
+  ]),
+  /** Leitura de tom — usada só para linguagem, nunca para verdade clínica. */
+  emotionalTone: z.enum(emotionalTones).nullable(),
+  /** Verdadeiro quando a fala saiu do eixo do treino (desabafo, meta-conversa). */
+  offTrack: z.boolean(),
   configuration: z.object({
     themeId: z.enum(themeIds).nullable(),
     levelId: z.enum(levelIds).nullable(),
@@ -70,6 +88,8 @@ export function buildInterpretationJsonSchema(allowedActionIds: string[]): Recor
     additionalProperties: false,
     required: [
       "kind",
+      "emotionalTone",
+      "offTrack",
       "configuration",
       "metaCommands",
       "actions",
@@ -79,8 +99,16 @@ export function buildInterpretationJsonSchema(allowedActionIds: string[]): Recor
     properties: {
       kind: {
         type: "string",
-        enum: ["configuration_intent", "meta_command", "clinical_input", "ambiguous"],
+        enum: [
+          "configuration_intent",
+          "meta_command",
+          "clinical_input",
+          "relational",
+          "ambiguous",
+        ],
       },
+      emotionalTone: nullableEnum(emotionalTones),
+      offTrack: { type: "boolean" },
       configuration: {
         type: "object",
         additionalProperties: false,
