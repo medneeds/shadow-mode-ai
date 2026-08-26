@@ -7,6 +7,8 @@ import {
   careerStages,
   comfortOptions,
   emptyProfile,
+  expectationOptions,
+  profileRows,
   saveDoctorProfile,
   strengthOptions,
   stressStyles,
@@ -36,7 +38,11 @@ const STEPS: { id: StepId; question: string; hint?: string }[] = [
   { id: "strengths", question: "O que você já domina bem?", hint: "Pode escolher mais de um" },
   { id: "scarcity", question: "E cenários com escassez de recursos?" },
   { id: "fast", question: "Raciocínio clínico rápido, sob relógio?" },
-  { id: "expectation", question: "O que você espera da Shadow Medical Training?" },
+  {
+    id: "expectation",
+    question: "O que você espera da Shadow Medical Training?",
+    hint: "Pode escolher mais de um",
+  },
   { id: "voice", question: "Qual voz você quer que eu tenha?" },
   { id: "tone", question: "E como você quer que eu fale com você?" },
 ];
@@ -51,6 +57,7 @@ export function OnboardingFlow({
   initial?: DoctorProfile | null;
 }) {
   const [index, setIndex] = useState(0);
+  const [review, setReview] = useState(false);
   const [draft, setDraft] = useState<DoctorProfile>(initial ?? emptyProfile);
   const [expectation, setExpectation] = useState(initial?.expectation ?? "");
   const speech = useShadowSpeech();
@@ -63,12 +70,16 @@ export function OnboardingFlow({
     const next = { ...draft, ...patch };
     setDraft(next);
     if (last) {
-      const finished: DoctorProfile = { ...next, completedAt: Date.now() };
-      saveDoctorProfile(finished);
-      onComplete(finished);
+      setReview(true);
       return;
     }
     setIndex((i) => i + 1);
+  };
+
+  const confirm = () => {
+    const finished: DoctorProfile = { ...draft, completedAt: Date.now() };
+    saveDoctorProfile(finished);
+    onComplete(finished);
   };
 
   const previewVoice = (voice: "female" | "male") => {
@@ -79,6 +90,60 @@ export function OnboardingFlow({
       speechRate: "normal",
     });
   };
+
+  if (review) {
+    const rows = profileRows(draft);
+    return (
+      <div className="flex flex-col items-center text-center">
+        <VoicePresence state={speech.speaking ? "speaking" : "idle"} getAmplitude={() => speech.getAmplitude()} />
+
+        <p className="eyebrow mt-2 opacity-50">Primeiro acesso · Resumo</p>
+        <p className="mt-3 max-w-lg font-display text-xl leading-relaxed">
+          É assim que vou treinar com você
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground/70">
+          Dá para ajustar qualquer resposta agora — ou depois, no seu perfil.
+        </p>
+
+        <dl className="mt-7 w-full max-w-md divide-y divide-[color:var(--hairline)] text-left">
+          {rows.map((row, i) => (
+            <div key={row.label} className="flex items-baseline justify-between gap-6 py-3">
+              <dt className="text-xs text-muted-foreground">{row.label}</dt>
+              <dd className="flex items-baseline gap-3 text-right text-sm text-foreground">
+                <span>{row.value ?? <span className="text-muted-foreground/50">Não respondido</span>}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setReview(false);
+                    setIndex(i);
+                  }}
+                  className="text-[11px] text-muted-foreground/60 hover:text-foreground"
+                >
+                  Ajustar
+                </button>
+              </dd>
+            </div>
+          ))}
+        </dl>
+
+        <div className="mt-8 flex items-center gap-4">
+          <Button size="sm" onClick={confirm}>
+            Salvar e começar
+          </Button>
+          <button
+            type="button"
+            onClick={() => {
+              setReview(false);
+              setIndex(STEPS.length - 1);
+            }}
+            className="text-xs text-muted-foreground/60 hover:text-foreground"
+          >
+            Voltar
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center text-center">
@@ -121,25 +186,55 @@ export function OnboardingFlow({
           ))}
 
         {step.id === "expectation" && (
-          <form
-            className="flex w-full flex-col items-center gap-3"
-            onSubmit={(e) => {
-              e.preventDefault();
-              advance({ expectation: expectation.trim() || null });
-            }}
-          >
-            <textarea
-              value={expectation}
-              onChange={(e) => setExpectation(e.target.value)}
-              rows={2}
-              placeholder="Escreva em uma frase…"
-              aria-label="Sua expectativa"
-              className="w-full resize-none border-b border-hairline bg-transparent py-2 text-center text-sm text-foreground placeholder:text-muted-foreground/60 focus:border-foreground/40 focus:outline-none"
-            />
-            <Button size="sm" type="submit">
-              Continuar
-            </Button>
-          </form>
+          <div className="flex w-full flex-col items-center gap-4">
+            <div className="flex flex-wrap justify-center gap-2">
+              {expectationOptions.map((option) => {
+                const on = draft.expectations.includes(option);
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() =>
+                      setDraft((p) => ({
+                        ...p,
+                        expectations: on
+                          ? p.expectations.filter((v) => v !== option)
+                          : [...p.expectations, option],
+                      }))
+                    }
+                    className={cn(
+                      "rounded-full border border-hairline px-3 py-1.5 text-xs transition-colors",
+                      on
+                        ? "border-foreground/35 bg-surface-raised/60 text-foreground"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {option}
+                  </button>
+                );
+              })}
+            </div>
+            <form
+              className="flex w-full flex-col items-center gap-3"
+              onSubmit={(e) => {
+                e.preventDefault();
+                advance({ expectations: draft.expectations, expectation: expectation.trim() || null });
+              }}
+            >
+              <textarea
+                value={expectation}
+                onChange={(e) => setExpectation(e.target.value)}
+                rows={2}
+                placeholder="Quer acrescentar algo? (opcional)"
+                aria-label="Sua expectativa"
+                className="w-full resize-none border-b border-hairline bg-transparent py-2 text-center text-sm text-foreground placeholder:text-muted-foreground/60 focus:border-foreground/40 focus:outline-none"
+              />
+              <Button size="sm" type="submit">
+                Continuar
+              </Button>
+            </form>
+          </div>
         )}
 
         {step.id === "voice" && (

@@ -10,7 +10,12 @@ import type { TrainerProfile, VoicePreference } from "@/lib/shadow-trainer";
 
 export const STORAGE_KEY = "smt-doctor-profile";
 
-export type CareerStage = "estudante" | "internato" | "residente" | "especialista";
+export type CareerStage =
+  | "estudante"
+  | "internato"
+  | "residente"
+  | "generalista"
+  | "especialista";
 export type StressStyle = "calmo" | "oscila" | "acelera";
 export type Comfort = "confortavel" | "neutro" | "desafiador";
 
@@ -21,6 +26,9 @@ export type DoctorProfile = {
   strengths: string[];
   scarcity: Comfort | null;
   fastThinking: Comfort | null;
+  /** Expectativas escolhidas entre opções (0..N). */
+  expectations: string[];
+  /** Complemento livre, opcional. */
   expectation: string | null;
   voicePreference: VoicePreference | null;
   tone: TrainerProfile | null;
@@ -34,6 +42,7 @@ export const emptyProfile: DoctorProfile = {
   strengths: [],
   scarcity: null,
   fastThinking: null,
+  expectations: [],
   expectation: null,
   voicePreference: null,
   tone: null,
@@ -44,6 +53,7 @@ export const careerStages: { id: CareerStage; label: string; hint: string; level
   { id: "estudante", label: "Estudante", hint: "Fundamentos", level: "basico" },
   { id: "internato", label: "Internato", hint: "Prática inicial", level: "basico" },
   { id: "residente", label: "Residente", hint: "Decisão real", level: "intermediario" },
+  { id: "generalista", label: "Generalista", hint: "Médico formado, atuação ampla", level: "intermediario" },
   { id: "especialista", label: "Especialista", hint: "Alta pressão", level: "avancado" },
 ];
 
@@ -68,6 +78,15 @@ export const strengthOptions = [
   "Comunicação",
 ];
 
+export const expectationOptions = [
+  "Sentir mais segurança na hora de decidir",
+  "Treinar para provas práticas e OSCE",
+  "Afiar raciocínio clínico sob pressão",
+  "Evoluir tecnicamente em condutas",
+  "Melhorar comunicação com o paciente",
+  "Manter o ritmo de treino constante",
+];
+
 export const toneOptions: { id: TrainerProfile; label: string; hint: string }[] = [
   { id: "gentle", label: "Acolhedor", hint: "Calmo e paciente" },
   { id: "assertive", label: "Direto", hint: "Firme, sem rodeios" },
@@ -81,7 +100,9 @@ export function loadDoctorProfile(): DoctorProfile | null {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as DoctorProfile;
-    return parsed && parsed.version === 1 ? parsed : null;
+    if (!parsed || parsed.version !== 1) return null;
+    // Perfis salvos antes das expectativas múltiplas continuam válidos.
+    return { ...parsed, expectations: parsed.expectations ?? [], strengths: parsed.strengths ?? [] };
   } catch {
     return null;
   }
@@ -132,4 +153,28 @@ export function profileSummary(profile: DoctorProfile): string {
     profile.voicePreference === "male" ? "Voz masculina" : profile.voicePreference === "female" ? "Voz feminina" : null,
   ].filter(Boolean);
   return parts.join(" · ");
+}
+
+/** Linhas do resumo — usadas na revisão do questionário e na tela de perfil. */
+export function profileRows(profile: DoctorProfile): { label: string; value?: string | undefined }[] {
+  const expectations = [...profile.expectations];
+  if (profile.expectation) expectations.push(profile.expectation);
+  return [
+    { label: "Momento", value: careerStages.find((s) => s.id === profile.stage)?.label },
+    { label: "Sob pressão", value: stressStyles.find((s) => s.id === profile.stress)?.label },
+    { label: "Domínios", value: profile.strengths.length > 0 ? profile.strengths.join(", ") : undefined },
+    { label: "Escassez de recursos", value: comfortOptions.find((c) => c.id === profile.scarcity)?.label },
+    { label: "Raciocínio rápido", value: comfortOptions.find((c) => c.id === profile.fastThinking)?.label },
+    { label: "Expectativa", value: expectations.length > 0 ? expectations.join(" · ") : undefined },
+    {
+      label: "Voz do Sombra",
+      value:
+        profile.voicePreference === "male"
+          ? "Masculina"
+          : profile.voicePreference === "female"
+            ? "Feminina"
+            : undefined,
+    },
+    { label: "Tom", value: toneOptions.find((t) => t.id === profile.tone)?.label },
+  ];
 }
