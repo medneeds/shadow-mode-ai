@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { MeterRow, PageSection, SectionHeading } from "@/components/ui/section";
 import { mockCompetencies } from "@/lib/shadow-content";
 import { useTrainingSession } from "@/lib/session-store";
+import { shadowSummary } from "@/lib/shadow-trainer";
 import { durationLabel, levelLabel, mockCase, mockScore, themeLabel } from "@/lib/training-session";
 
 export const Route = createFileRoute("/resultado")({
@@ -70,6 +71,8 @@ function ResultPage() {
         <p className="mt-4 font-display text-sm text-muted-foreground">
           {themeLabel(config.themeId)} · {levelLabel(config.levelId)} ·{" "}
           {durationLabel(config.durationId)}
+          {" · "}
+          {shadowSummary(config.interactionMode, config.voicePreference, config.trainerProfile)}
         </p>
       </PageSection>
 

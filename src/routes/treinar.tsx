@@ -7,6 +7,12 @@ import { OptionChip, PageSection, SectionHeading } from "@/components/ui/section
 import { durations, levels, themes, type LevelId } from "@/lib/shadow-content";
 import { useTrainingSession } from "@/lib/session-store";
 import { durationLabel, levelLabel, themeLabel } from "@/lib/training-session";
+import {
+  interactionModes,
+  shadowSummary,
+  trainerProfiles,
+  voicePreferences,
+} from "@/lib/shadow-trainer";
 
 export const Route = createFileRoute("/treinar")({
   head: () => ({
@@ -34,6 +40,11 @@ function TrainingSetup() {
   const summary = `${themeLabel(config.themeId)} · ${levelLabel(config.levelId)} · ${durationLabel(
     config.durationId,
   )}`;
+  const shadowLine = shadowSummary(
+    config.interactionMode,
+    config.voicePreference,
+    config.trainerProfile,
+  );
 
   const handleStart = () => {
     startSession();
@@ -63,6 +74,11 @@ function TrainingSetup() {
                 </div>
               ))}
             </dl>
+
+            <div className="mt-6 rounded-lg border border-hairline bg-surface p-4">
+              <p className="eyebrow">Sombra</p>
+              <p className="mt-2 font-display text-base">{shadowLine}</p>
+            </div>
 
             <p className="mt-6 text-sm leading-relaxed text-muted-foreground">
               Ao iniciar, o cronômetro começa e você assume a condução do caso.
@@ -140,11 +156,70 @@ function TrainingSetup() {
         </fieldset>
       </PageSection>
 
+      <PageSection className="pb-0">
+        <fieldset className="border-t border-hairline pt-10">
+          <legend className="eyebrow">Sombra</legend>
+
+          <div className="mt-4 grid gap-8 sm:grid-cols-2">
+            <div>
+              <p className="text-sm text-muted-foreground">Interação</p>
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                {interactionModes.map((m) => (
+                  <OptionChip
+                    key={m.id}
+                    label={m.label}
+                    hint={m.hint}
+                    selected={config.interactionMode === m.id}
+                    onSelect={() => setConfig({ interactionMode: m.id })}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {config.interactionMode === "voice_text" && (
+              <div>
+                <p className="text-sm text-muted-foreground">Voz</p>
+                <div className="mt-3 grid grid-cols-2 gap-3">
+                  {voicePreferences.map((v) => (
+                    <OptionChip
+                      key={v.id}
+                      label={v.label}
+                      selected={config.voicePreference === v.id}
+                      onSelect={() => setConfig({ voicePreference: v.id })}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-8">
+            <p className="text-sm text-muted-foreground">Perfil</p>
+            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {trainerProfiles.map((p) => (
+                <OptionChip
+                  key={p.id}
+                  label={p.label}
+                  hint={p.hint}
+                  selected={config.trainerProfile === p.id}
+                  onSelect={() => setConfig({ trainerProfile: p.id })}
+                />
+              ))}
+            </div>
+            <p className="mt-3 max-w-xl text-xs leading-relaxed text-muted-foreground">
+              O perfil muda o tom e o ritmo da simulação. Não altera a conduta médica correta nem o
+              caso clínico — e o Sombra nunca dá dicas durante a estação.
+            </p>
+          </div>
+        </fieldset>
+      </PageSection>
+
       <PageSection>
         <div className="panel flex flex-col gap-6 p-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="eyebrow">Sua estação</p>
             <p className="mt-2 font-display text-lg">{summary}</p>
+            <p className="mt-1 text-sm text-muted-foreground">Sombra · {shadowLine}</p>
             <p className="mt-2 max-w-md text-xs leading-relaxed text-muted-foreground">
               Você conduzirá o atendimento por voz. Nenhuma lista de tarefas será exibida durante a
               estação.

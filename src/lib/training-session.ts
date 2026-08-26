@@ -5,6 +5,7 @@
 import type { LevelId } from "./shadow-content";
 import { durations, levels, themes } from "./shadow-content";
 import type { VoiceState } from "@/components/shadow/VoicePresence";
+import type { InteractionMode, TrainerProfile, VoicePreference } from "./shadow-trainer";
 
 export type SessionStatus = "configuring" | "ready" | "active" | "paused" | "finished";
 
@@ -12,6 +13,12 @@ export type TrainingConfig = {
   themeId: string;
   levelId: LevelId;
   durationId: string;
+  /** Como o Sombra responde (UI/config nesta fase — sem áudio real). */
+  interactionMode: InteractionMode;
+  /** Apresentação de voz apenas; não altera comportamento clínico. */
+  voicePreference: VoicePreference;
+  /** Estilo de comunicação e pressão; nunca altera a verdade médica do caso. */
+  trainerProfile: TrainerProfile;
 };
 
 export type TrainingSession = {
@@ -52,6 +59,9 @@ export const defaultConfig: TrainingConfig = {
   themeId: "emergencia",
   levelId: "intermediario",
   durationId: "15",
+  interactionMode: "voice_text",
+  voicePreference: "female",
+  trainerProfile: "assertive",
 };
 
 export function durationToSeconds(durationId: string): number {
