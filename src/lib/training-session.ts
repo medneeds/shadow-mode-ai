@@ -114,7 +114,7 @@ export function createSession(config: TrainingConfig, caseId?: string): Training
         ? crypto.randomUUID()
         : `session-${Date.now()}`,
     config,
-    caseId: mockCase.id,
+    caseId: caseId ?? mockCase.id,
     status: "active",
     startedAt: Date.now(),
     finishedAt: null,
