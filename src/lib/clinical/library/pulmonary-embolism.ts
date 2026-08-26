@@ -1,0 +1,345 @@
+/**
+ * Dispneia com dor pleurítica — tromboembolismo pulmonar (fictício).
+ * Conteúdo clínico: needs_clinical_review.
+ */
+import {
+  action,
+  actions,
+  defineCase,
+  expected,
+  finding,
+  info,
+  infoOnAction,
+  investigation,
+  patientState,
+  trigger,
+} from "../case-authoring";
+
+export const pulmonaryEmbolismCase = defineCase({
+  id: "case-ps-tep-pos-operatorio",
+  title: "Dispneia súbita com dor pleurítica no pós-operatório",
+  meta: {
+    specialty: "pneumologia",
+    topic: "Dispneia",
+    subtopic: "Tromboembolismo pulmonar",
+    archetype: "dyspnea",
+    setting: "emergency_department",
+    difficulty: "intermediario",
+    clinicalSyndrome: "Dispneia aguda com hipoxemia e taquicardia",
+    primaryDiagnosis: "Tromboembolismo pulmonar submaciço",
+    dangerousDifferentials: ["Infarto agudo do miocárdio", "Pneumonia", "Pneumotórax", "Dissecção aórtica"],
+    ageGroup: "adult",
+    acuity: "critical",
+    skills: ["diagnostic_reasoning", "investigation", "treatment", "reassessment", "disposition"],
+    compatibleDurations: ["5", "15", "30"],
+    estimatedMinutes: 15,
+    review: { status: "needs_clinical_review" },
+    keywords: ["dispneia", "falta de ar", "tep", "embolia pulmonar", "dor toracica", "hipoxemia", "trombose"],
+  },
+  setting: "Pronto-socorro de hospital geral",
+  opening:
+    "Mulher de 44 anos chega com falta de ar iniciada há duas horas e dor no peito que piora ao inspirar. Você assume o atendimento agora.",
+  patient: {
+    age: 44,
+    biologicalSex: "female",
+    chiefPresentation: "Dispneia súbita com dor torácica pleurítica",
+    information: [
+      info("info-obs", "observável", "Mulher taquipneica, falando frases curtas, ansiosa.", { kind: "observable" }),
+      infoOnAction(
+        "info-hda",
+        "história",
+        "A falta de ar começou de repente, em repouso. A dor piora à inspiração profunda. Nega febre e nega tosse produtiva.",
+        "history_hpi",
+      ),
+      infoOnAction(
+        "info-antecedentes",
+        "antecedentes",
+        "Artroplastia de joelho há 12 dias, com imobilização e pouca deambulação desde então.",
+        "history_past",
+      ),
+      infoOnAction(
+        "info-medicacoes",
+        "medicações",
+        "Usa anticoncepcional oral combinado. Profilaxia antitrombótica suspensa após a alta cirúrgica. Sem alergias.",
+        "history_medications",
+      ),
+    ],
+  },
+  initialState: patientState({
+    breathing: { effort: "increased", description: "Taquipneia, sem ruídos adventícios" },
+    vitals: {
+      heartRate: 122,
+      respiratoryRate: 30,
+      systolicBP: 112,
+      diastolicBP: 70,
+      oxygenSaturation: 88,
+      temperatureC: 37.1,
+    },
+    tags: ["tromboembolismo pulmonar"],
+  }),
+  variableVitals: { heartRate: [114, 122, 130], oxygenSaturation: [86, 88, 90] },
+  hidden: {
+    diagnosis: "Tromboembolismo pulmonar submaciço com disfunção de ventrículo direito",
+    differentials: ["IAM", "Pneumonia", "Pneumotórax"],
+    evaluation: {
+      competencies: ["Estratificação de risco", "Anticoagulação precoce", "Reavaliação hemodinâmica"],
+      educationalPurpose: "Suspeitar de TEP em contexto de imobilização e conduzir anticoagulação sem atraso.",
+      rubricNotes: [
+        "Anticoagulação não deve esperar a tomografia quando a suspeita é alta e não há contraindicação.",
+        "Alta hospitalar com hipoxemia é conduta insegura.",
+      ],
+    },
+  },
+  actions: [
+    ...actions(
+      [
+        "check_vital_signs",
+        "place_monitoring",
+        "obtain_iv_access",
+        "administer_oxygen",
+        "request_ecg",
+        "request_blood_gas",
+        "request_laboratory_tests",
+        "request_troponin",
+        "request_chest_xray",
+        "request_chest_ct",
+        "request_bedside_ultrasound",
+        "history_hpi",
+        "history_past",
+        "history_medications",
+        "exam_respiratory",
+        "exam_cardiovascular",
+        "exam_extremities",
+        "reassess_vitals",
+        "request_specialist",
+        "disposition_icu",
+        "disposition_ward",
+        "disposition_discharge",
+      ],
+      {
+        administer_oxygen: {
+          immediateFact: "Oxigênio suplementar instalado; a saturação sobe para 93%.",
+          statePatch: { vitals: { oxygenSaturation: 93 }, addTags: ["oxigenado"] },
+          eventType: "improvement_after_treatment",
+        },
+        reassess_vitals: {
+          immediateFact: "Você reafere os sinais vitais e reavalia o esforço respiratório.",
+          eventType: "reassessment_result",
+        },
+        request_specialist: {
+          immediateFact: "A equipe de terapia intensiva é acionada para avaliação conjunta.",
+          requestsInvestigationId: "inv_specialist",
+        },
+        disposition_icu: {
+          immediateFact: "Paciente encaminhada à terapia intensiva com anticoagulação em curso.",
+          statePatch: { addTags: ["estabilizado"] },
+        },
+        disposition_ward: { immediateFact: "Você solicita internação em enfermaria." },
+        disposition_discharge: { immediateFact: "Você define alta hospitalar." },
+      },
+    ),
+    action("administer_anticoagulation", {
+      label: "Iniciar anticoagulação plena",
+      category: "medication",
+      patchRequiresTag: "tromboembolismo pulmonar",
+      immediateFact: "Anticoagulação plena iniciada conforme o peso, sem intercorrências.",
+      ineffectiveFact: "Anticoagulação iniciada, sem mudança clínica evidente.",
+      statePatch: { addTags: ["anticoagulado", "tratamento definitivo"] },
+      eventType: "improvement_after_treatment",
+    }),
+    action("administer_thrombolysis", {
+      label: "Administrar trombólise sistêmica",
+      category: "medication",
+      patchRequiresTag: "instabilidade hemodinâmica",
+      immediateFact:
+        "Trombólise sistêmica administrada na vigência de instabilidade: a pressão sobe e a saturação melhora.",
+      ineffectiveFact:
+        "Trombólise administrada em paciente sem instabilidade hemodinâmica, expondo a risco hemorrágico sem benefício definido.",
+      statePatch: {
+        circulation: { perfusion: "normal", description: "Perfusão recuperada" },
+        vitals: { systolicBP: 108, diastolicBP: 68, oxygenSaturation: 94 },
+        addTags: ["trombolisado", "estabilizado"],
+        removeTags: ["instabilidade hemodinâmica"],
+      },
+      eventType: "improvement_after_treatment",
+    }),
+  ],
+  examFindings: [
+    finding("f-resp", "respiratório", "Taquipneia com murmúrio vesicular presente e simétrico, sem crepitações.", "exam_respiratory"),
+    finding("f-cv", "cardiovascular", "Taquicardia regular, segunda bulha hiperfonética em foco pulmonar.", "exam_cardiovascular"),
+    finding("f-mmii", "extremidades", "Panturrilha direita levemente empastada e mais quente que a contralateral.", "exam_extremities"),
+    finding("f-vitais", "geral", "Taquicardia, taquipneia e saturação de 88% em ar ambiente.", "check_vital_signs"),
+  ],
+  investigations: [
+    investigation("inv_ecg", "ECG: taquicardia sinusal com padrão S1Q3T3 e inversão de onda T em V1-V3.", {
+      availabilityDelaySeconds: 90,
+    }),
+    investigation("inv_blood_gas", "Gasometria arterial: hipoxemia com hipocapnia e alcalose respiratória."),
+    investigation("inv_chest_xray", "Radiografia de tórax sem consolidações, sem pneumotórax e sem congestão."),
+    investigation(
+      "inv_chest_ct",
+      "Angiotomografia: falhas de enchimento em artérias pulmonares lobares bilaterais, com relação VD/VE aumentada.",
+      { availabilityDelaySeconds: 720 },
+    ),
+    investigation(
+      "inv_bedside_us",
+      "Ultrassom à beira do leito: ventrículo direito dilatado com septo retificado; veia cava inferior pletórica.",
+    ),
+    investigation("inv_labs", "Hemograma normal; função renal preservada; D-dímero acentuadamente elevado."),
+    investigation("inv_troponin", "Troponina discretamente elevada, compatível com sobrecarga ventricular direita."),
+    investigation("inv_specialist", "A terapia intensiva concorda com anticoagulação e monitorização em unidade fechada."),
+  ],
+  timeTriggers: [
+    trigger("trg-dessat-180", 180, "A enfermagem informa que a saturação está em 84% em ar ambiente.", {
+      conditions: [{ kind: "action_missing", actionId: "administer_oxygen" }],
+      statePatch: { vitals: { oxygenSaturation: 84 } },
+      source: "omission_trigger",
+    }),
+    trigger(
+      "trg-instabilidade-600",
+      600,
+      "O monitor mostra queda da pressão para 82/50 mmHg com frequência de 138 bpm.",
+      {
+        conditions: [{ kind: "action_missing", actionId: "administer_anticoagulation" }],
+        statePatch: {
+          circulation: { perfusion: "poor", description: "Perfusão periférica comprometida" },
+          vitals: { systolicBP: 82, diastolicBP: 50, heartRate: 138 },
+          addTags: ["instabilidade hemodinâmica", "deterioração"],
+        },
+        branchId: "branch-instabilidade",
+        source: "omission_trigger",
+      },
+    ),
+  ],
+  branches: [
+    {
+      id: "branch-instabilidade",
+      label: "Evolução para TEP maciço",
+      kind: "deterioration",
+      tag: "instabilidade hemodinâmica",
+      description: "Sem anticoagulação oportuna, o quadro evolui com instabilidade e passa a exigir trombólise.",
+    },
+  ],
+  outcomes: [
+    {
+      id: "out-anticoagulado",
+      label: "Anticoagulada e internada",
+      kind: "stabilized",
+      conditions: [
+        { kind: "has_tag", tag: "anticoagulado" },
+        { kind: "has_tag", tag: "estabilizado" },
+      ],
+      description: "Diagnóstico conduzido, anticoagulação iniciada e destino adequado definido.",
+    },
+  ],
+  objectives: [
+    {
+      id: "obj-imagem",
+      label: "Confirmar o diagnóstico com imagem",
+      domain: "investigation",
+      satisfiedByAnyOf: ["request_chest_ct", "request_bedside_ultrasound"],
+      critical: false,
+      recommendedWindowSeconds: 600,
+    },
+  ],
+  expectedActions: [
+    expected("administer_oxygen", {
+      importance: "important",
+      weight: 10,
+      windowSeconds: 180,
+      clinicalRelevance: "Corrigir a hipoxemia é a primeira medida de suporte.",
+    }),
+    expected("administer_anticoagulation", {
+      importance: "critical",
+      weight: 22,
+      critical: true,
+      windowSeconds: 600,
+      clinicalRelevance: "Anticoagulação precoce é o tratamento definitivo do TEP sem instabilidade.",
+      learningPoint: "Com suspeita alta e sem contraindicação, não espere a imagem para anticoagular.",
+      omission: {
+        description: "A anticoagulação não foi iniciada dentro da janela.",
+        consequenceTriggerId: "trg-instabilidade-600",
+        consequence: "A paciente evoluiu com instabilidade hemodinâmica.",
+      },
+    }),
+    expected("request_chest_ct", {
+      importance: "important",
+      weight: 12,
+      windowSeconds: 720,
+      objectiveId: "obj-imagem",
+      equivalentActionIds: ["request_bedside_ultrasound"],
+      clinicalRelevance: "Confirmação diagnóstica orienta duração e intensidade do tratamento.",
+    }),
+    expected("history_past", {
+      importance: "important",
+      weight: 10,
+      windowSeconds: 300,
+      clinicalRelevance: "A cirurgia recente e a imobilização são o eixo da suspeição.",
+    }),
+    expected("request_ecg", { importance: "expected", weight: 6, windowSeconds: 300 }),
+    expected("exam_extremities", { importance: "expected", weight: 6, windowSeconds: 420 }),
+    expected("place_monitoring", { importance: "expected", weight: 6, windowSeconds: 180 }),
+    expected("obtain_iv_access", { importance: "expected", weight: 5, windowSeconds: 240 }),
+    expected("reassess_vitals", { importance: "important", weight: 8, windowSeconds: 600 }),
+    expected("disposition_icu", {
+      importance: "important",
+      weight: 12,
+      windowSeconds: 1080,
+      equivalentActionIds: ["disposition_ward"],
+      clinicalRelevance: "O destino depende da estratificação de risco; a decisão precisa ser explícita.",
+    }),
+  ],
+  scoring: {
+    caseVersion: "1.0.0",
+    scoringVersion: "phase-06",
+    domains: ["diagnostic_reasoning", "investigation", "treatment", "reassessment", "safety", "disposition"],
+    unsafeActions: [
+      {
+        actionId: "disposition_discharge",
+        description: "Alta hospitalar com hipoxemia e suspeita de tromboembolismo pulmonar.",
+        domain: "safety",
+        penaltyPoints: 25,
+      },
+      {
+        actionId: "administer_thrombolysis",
+        description: "Trombólise sistêmica sem instabilidade hemodinâmica, com risco hemorrágico desnecessário.",
+        domain: "safety",
+        penaltyPoints: 15,
+      },
+    ],
+    expectedManagement: [
+      "Reconhecer a suspeição clínica em paciente com imobilização recente.",
+      "Corrigir hipoxemia, monitorizar e obter acesso venoso.",
+      "Iniciar anticoagulação plena precocemente na ausência de contraindicação.",
+      "Confirmar com angiotomografia e definir destino conforme o risco.",
+    ],
+    hypotheses: {
+      essential: ["Tromboembolismo pulmonar"],
+      acceptable: ["Síndrome coronariana aguda", "Pneumonia"],
+      dangerous: ["Crise de ansiedade com alta hospitalar"],
+    },
+  },
+  relevantSpecialties: ["Pneumologia", "Terapia intensiva"],
+  completion: {
+    resolutionActionIds: ["administer_anticoagulation", "disposition_icu"],
+    stabilizedTag: "estabilizado",
+    maxClinicalSeconds: 1500,
+  },
+  variants: [
+    {
+      id: "var-intermediario-estavel",
+      label: "TEP submaciço estável",
+      difficulty: "intermediario",
+      reviewNote: "Fator de risco evidente e hemodinâmica preservada.",
+    },
+    {
+      id: "var-avancado-instavel",
+      label: "TEP com instabilidade precoce",
+      difficulty: "avancado",
+      initialVitals: { systolicBP: 88, diastolicBP: 54, heartRate: 134, oxygenSaturation: 84 },
+      addTags: ["instabilidade hemodinâmica"],
+      triggerTimeShiftSeconds: -180,
+      reviewNote: "Exige decisão sobre trombólise sob pressão de tempo.",
+    },
+  ],
+});
