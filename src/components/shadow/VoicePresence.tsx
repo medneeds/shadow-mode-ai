@@ -13,13 +13,15 @@ export const voiceStateLabels: Record<VoiceState, string> = {
 
 /**
  * Presença de voz do Shadow — uma presença inteligente, não um personagem.
- * Estados são visuais nesta fase (sem provedor de voz).
+ * `amplitude` (0..1) vem do microfone (ouvindo) ou do áudio do Sombra (falando).
  */
 export function VoicePresence({
   state = "idle",
+  amplitude = 0,
   className,
 }: {
   state?: VoiceState;
+  amplitude?: number;
   className?: string;
 }) {
   const animated = state === "listening" || state === "speaking" || state === "idle";
@@ -71,20 +73,27 @@ export function VoicePresence({
             ))}
           </span>
         ) : (
-          <Waveform state={state} />
+          <Waveform state={state} amplitude={amplitude} />
         )}
       </span>
     </div>
   );
 }
 
-function Waveform({ state }: { state: VoiceState }) {
-  const heights =
+function Waveform({ state, amplitude }: { state: VoiceState; amplitude: number }) {
+  const base =
     state === "speaking"
       ? [10, 26, 44, 20, 34, 14]
       : state === "listening"
         ? [8, 18, 30, 16, 22, 10]
         : [6, 8, 12, 8, 8, 6];
+
+  // Reação contida à amplitude real (microfone ou playback), sem equalizador.
+  const gain =
+    state === "speaking" || state === "listening"
+      ? 1 + Math.min(1, Math.max(0, amplitude)) * 0.8
+      : 1;
+  const heights = base.map((h) => Math.round(h * gain));
 
   return (
     <span className="flex items-end gap-1.5" aria-hidden>

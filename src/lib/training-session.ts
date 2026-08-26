@@ -12,6 +12,7 @@ import type {
   VoicePreference,
 } from "./shadow-trainer";
 import type { TraineeInput } from "./trainee-input";
+import type { SpeechRate } from "./voice/voice-types";
 
 export type SessionStatus = "configuring" | "ready" | "active" | "paused" | "finished";
 
@@ -25,6 +26,8 @@ export type TrainingConfig = {
   traineeInputMode: TraineeInputMode;
   /** Apresentação de voz apenas; não altera comportamento clínico. */
   voicePreference: VoicePreference;
+  /** Ritmo da síntese de voz. Independente do perfil do treinador. */
+  speechRate: SpeechRate;
   /** Estilo de comunicação e pressão; nunca altera a verdade médica do caso. */
   trainerProfile: TrainerProfile;
 };
@@ -75,6 +78,7 @@ export const defaultConfig: TrainingConfig = {
   shadowOutputMode: "voice_text",
   traineeInputMode: "hybrid",
   voicePreference: "female",
+  speechRate: "normal",
   trainerProfile: "assertive",
 };
 
