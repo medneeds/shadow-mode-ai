@@ -110,6 +110,7 @@ export function useVoiceCapture({ onUtterance, onSpeechStart, suspended }: Optio
     const chunks = chunksRef.current;
     chunksRef.current = [];
     speakingRef.current = false;
+    lastFinalizeAtRef.current = performance.now();
     const durationMs = (chunks.reduce((n, c) => n + c.length, 0) / sampleRate) * 1000;
     if (durationMs < MIN_UTTERANCE_MS) return;
     const blob = pcmToWav(chunks, sampleRate);
