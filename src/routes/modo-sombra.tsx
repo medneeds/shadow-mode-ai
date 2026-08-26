@@ -90,6 +90,8 @@ function ShadowRoom() {
   const canType = session ? traineeCanType(session.config.traineeInputMode) : false;
   const wantsVoiceInput = session ? traineeCanSpeak(session.config.traineeInputMode) : false;
   const wantsVoiceOutput = config.shadowOutputMode === "voice_text";
+  const shadowVoiceOn = wantsVoiceOutput && !audioMuted;
+
 
   const speech = useShadowSpeech();
 
