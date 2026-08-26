@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ModoSombraRouteImport } from './routes/modo-sombra'
+import { Route as ResultadoRouteImport } from './routes/resultado'
 import { Route as TreinarRouteImport } from './routes/treinar'
 
 const IndexRoute = IndexRouteImport.update({
@@ -23,6 +24,11 @@ const ModoSombraRoute = ModoSombraRouteImport.update({
   path: '/modo-sombra',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ResultadoRoute = ResultadoRouteImport.update({
+  id: '/resultado',
+  path: '/resultado',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TreinarRoute = TreinarRouteImport.update({
   id: '/treinar',
   path: '/treinar',
@@ -32,30 +38,34 @@ const TreinarRoute = TreinarRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/modo-sombra': typeof ModoSombraRoute
+  '/resultado': typeof ResultadoRoute
   '/treinar': typeof TreinarRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/modo-sombra': typeof ModoSombraRoute
+  '/resultado': typeof ResultadoRoute
   '/treinar': typeof TreinarRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/modo-sombra': typeof ModoSombraRoute
+  '/resultado': typeof ResultadoRoute
   '/treinar': typeof TreinarRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/modo-sombra' | '/treinar'
+  fullPaths: '/' | '/modo-sombra' | '/resultado' | '/treinar'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/modo-sombra' | '/treinar'
-  id: '__root__' | '/' | '/modo-sombra' | '/treinar'
+  to: '/' | '/modo-sombra' | '/resultado' | '/treinar'
+  id: '__root__' | '/' | '/modo-sombra' | '/resultado' | '/treinar'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ModoSombraRoute: typeof ModoSombraRoute
+  ResultadoRoute: typeof ResultadoRoute
   TreinarRoute: typeof TreinarRoute
 }
 
@@ -75,6 +85,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ModoSombraRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/resultado': {
+      id: '/resultado'
+      path: '/resultado'
+      fullPath: '/resultado'
+      preLoaderRoute: typeof ResultadoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/treinar': {
       id: '/treinar'
       path: '/treinar'
@@ -88,6 +105,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ModoSombraRoute: ModoSombraRoute,
+  ResultadoRoute: ResultadoRoute,
   TreinarRoute: TreinarRoute,
 }
 export const routeTree = rootRouteImport
