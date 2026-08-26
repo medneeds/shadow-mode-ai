@@ -57,6 +57,8 @@ export type TrainerRequest = {
   profile: TrainerProfile;
   /** Contexto conversacional mínimo. */
   context?: string | undefined;
+  /** Contexto de trabalho estruturado (InteractionContext serializado). */
+  structuredContext?: string | undefined;
   /** Pergunta de esclarecimento (não é dica clínica). */
   clarification?: string | null | undefined;
   /** Entrada do trainee (conteúdo não confiável). */
