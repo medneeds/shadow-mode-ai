@@ -46,9 +46,9 @@ function PerformancePage() {
           ))}
         </dl>
 
-        <div className="mt-12 max-w-2xl">
+        <div className="mt-12">
           <h3 className="text-lg">Por competência</h3>
-          <div className="mt-4 divide-y divide-[color:var(--hairline)]">
+          <div className="mt-4 grid lg:grid-cols-2 lg:gap-x-16">
             {mockCompetencies.map((c) => (
               <MeterRow key={c.label} label={c.label} value={c.value} />
             ))}
