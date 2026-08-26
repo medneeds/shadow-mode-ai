@@ -88,6 +88,8 @@ export type InterpretRequest = {
   context?: string | undefined;
   /** Estado observável resumido — nunca dados ocultos do caso. */
   visibleState?: string | undefined;
+  /** Contexto de trabalho estruturado (InteractionContext serializado). */
+  structuredContext?: string | undefined;
 };
 
 export async function interpretInput(
