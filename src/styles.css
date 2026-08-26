@@ -65,6 +65,8 @@
 
 :root {
   --radius: 0.5rem;
+  --elevated: 0 24px 60px -32px oklch(0 0 0 / 0.35);
+
 
   /* Modo claro — neutros quentes minimalistas */
   --background: oklch(0.975 0.003 90);
@@ -122,6 +124,7 @@
 }
 
 .dark {
+  --elevated: 0 24px 60px -32px oklch(0 0 0 / 0.8);
   /* Ambiente neutro profundo (grafite) */
   --background: oklch(0.178 0.004 250);
   --foreground: oklch(0.95 0.003 90);
