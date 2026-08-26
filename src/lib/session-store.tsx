@@ -66,6 +66,10 @@ type SessionContextValue = {
   consumePendingFacts: () => string[];
   /** Runtime clínico da última estação concluída — base da avaliação. */
   lastRuntime: ClinicalCaseRuntime | null;
+  /** Caso (com variante aplicada) da estação atual. */
+  caseDefinition: ClinicalCaseDefinition;
+  /** Caso da última estação concluída — base do resultado e do debriefing. */
+  lastCaseDefinition: ClinicalCaseDefinition;
 };
 
 const SessionContext = createContext<SessionContextValue | null>(null);
