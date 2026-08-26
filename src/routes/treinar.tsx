@@ -175,7 +175,7 @@ function TrainingSetup() {
       const question = nextSetupQuestion(provided);
       const shouldStart = result.startSession && !question;
 
-      if (patchedFields.length > 0 && shouldStart) {
+      if (shouldStart) {
         startSession(result.configPatch);
       } else if (patchedFields.length > 0) {
         setConfig(result.configPatch);
