@@ -289,6 +289,8 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
       pendingFacts,
       consumePendingFacts,
       lastRuntime,
+      caseDefinition,
+      lastCaseDefinition,
     }),
     [
       config,
@@ -314,6 +316,8 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
       pendingFacts,
       consumePendingFacts,
       lastRuntime,
+      caseDefinition,
+      lastCaseDefinition,
     ],
   );
 
