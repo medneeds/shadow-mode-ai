@@ -55,7 +55,7 @@ function hasPerformed(runtime: ClinicalCaseRuntime, actionId: string): boolean {
   return runtime.actionLog.some((a) => a.actionId === actionId);
 }
 
-function evaluateCondition(
+export function evaluateTriggerCondition(
   condition: TriggerCondition,
   runtime: ClinicalCaseRuntime,
 ): boolean {
@@ -108,7 +108,7 @@ function deriveOutcome(
 
   // Desfechos autorais do caso têm precedência sobre a heurística genérica.
   for (const outcome of def.outcomes ?? []) {
-    if (outcome.conditions.every((c) => evaluateCondition(c, runtime))) return outcome.kind;
+    if (outcome.conditions.every((c) => evaluateTriggerCondition(c, runtime))) return outcome.kind;
   }
 
   if (patient.tags.includes("parada cardiorrespiratória")) return "arrested";
@@ -322,7 +322,7 @@ export function advanceClinicalTime(
     for (const trigger of def.timeTriggers) {
       if (trigger.once && next.firedTriggerIds.includes(trigger.id)) continue;
       if (trigger.atClinicalSecond !== next.elapsedClinicalSeconds) continue;
-      if (!trigger.conditions.every((c) => evaluateCondition(c, next))) continue;
+      if (!trigger.conditions.every((c) => evaluateTriggerCondition(c, next))) continue;
 
       next = {
         ...next,

@@ -641,6 +641,58 @@ export const referenceCase: ClinicalCaseDefinition = {
     },
   },
 
+  guidance: {
+    points: [
+      {
+        id: "gp-abertura",
+        educationalPurpose:
+          "Organizar a abordagem inicial de um paciente inconsciente sem entregar a hipótese.",
+        guidedOptions: [
+          { id: "opt-via-aerea", label: "Avaliar via aérea", actionId: "assess_airway", educationalRole: "high_priority" },
+          { id: "opt-glicemia", label: "Solicitar glicemia capilar", actionId: "check_capillary_glucose", educationalRole: "high_priority" },
+          { id: "opt-familia", label: "Colher história com a família", actionId: "history_family", educationalRole: "reasonable" },
+        ],
+        adaptiveOptions: [
+          { id: "opt5-via-aerea", label: "Avaliar via aérea", actionId: "assess_airway", educationalRole: "high_priority" },
+          { id: "opt5-monitor", label: "Instalar monitorização", actionId: "place_monitoring", educationalRole: "reasonable" },
+          { id: "opt5-glicemia", label: "Solicitar glicemia capilar", actionId: "check_capillary_glucose", educationalRole: "high_priority" },
+          { id: "opt5-neuro", label: "Avaliação neurológica dirigida", actionId: "neurologic_assessment", educationalRole: "reasonable" },
+          { id: "opt5-familia", label: "Colher história com a família", actionId: "history_family", educationalRole: "lower_priority" },
+        ],
+      },
+      {
+        id: "gp-pos-tratamento",
+        educationalPurpose: "Fechar o ciclo: reavaliar a resposta, investigar a causa e definir destino.",
+        conditions: [{ kind: "action_performed", actionId: "administer_glucose" }],
+        guidedOptions: [
+          { id: "opt-reavaliar", label: "Reavaliar paciente", actionId: "reassess_patient", educationalRole: "high_priority" },
+          { id: "opt-medicacoes", label: "Perguntar sobre medicações e alergias", actionId: "history_medications", educationalRole: "reasonable" },
+          { id: "opt-observacao", label: "Manter em observação", actionId: "disposition_observation", educationalRole: "reasonable" },
+        ],
+        adaptiveOptions: [
+          { id: "opt5-reavaliar", label: "Reavaliar paciente", actionId: "reassess_patient", educationalRole: "high_priority" },
+          { id: "opt5-medicacoes", label: "Perguntar sobre medicações e alergias", actionId: "history_medications", educationalRole: "reasonable" },
+          { id: "opt5-labs", label: "Solicitar exames laboratoriais", actionId: "request_laboratory_tests", educationalRole: "context_dependent" },
+          { id: "opt5-social", label: "Colher história social", actionId: "history_social", educationalRole: "lower_priority" },
+          { id: "opt5-observacao", label: "Manter em observação", actionId: "disposition_observation", educationalRole: "reasonable" },
+        ],
+      },
+    ],
+    freeReasoningZones: [
+      {
+        id: "frz-conduta-definitiva",
+        label: "Decisão terapêutica",
+        educationalPurpose:
+          "Depois da avaliação inicial, a escolha do tratamento definitivo é do trainee.",
+        appliesTo: ["adaptive"],
+        conditions: [
+          { kind: "any_action_performed", actionIds: ["assess_airway", "check_capillary_glucose", "neurologic_assessment"] },
+          { kind: "action_missing", actionId: "administer_glucose" },
+        ],
+      },
+    ],
+  },
+
   completion: {
     resolutionActionIds: ["administer_glucose", "reassess_patient", "disposition_observation"],
     stabilizedTag: "estabilizado",

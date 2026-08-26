@@ -8,6 +8,9 @@ import {
   defineCase,
   expected,
   finding,
+  freeReasoningZone,
+  guidanceOption,
+  guidancePoint,
   info,
   infoOnAction,
   investigation,
@@ -360,6 +363,56 @@ export const stemiCase = defineCase({
     stabilizedTag: "estabilizado",
     maxClinicalSeconds: 1200,
   },
+  guidance: {
+    points: [
+    guidancePoint("gp-abertura", {
+      educationalPurpose:
+        "Estruturar os primeiros minutos de uma dor torácica sem antecipar o diagnóstico.",
+      guidedOptions: [
+        guidanceOption("check_vital_signs", "high_priority"),
+        guidanceOption("request_ecg", "high_priority"),
+        guidanceOption("history_hpi", "reasonable"),
+      ],
+      adaptiveOptions: [
+        guidanceOption("check_vital_signs", "high_priority"),
+        guidanceOption("request_ecg", "high_priority"),
+        guidanceOption("place_monitoring", "reasonable"),
+        guidanceOption("exam_cardiovascular", "reasonable"),
+        guidanceOption("history_hpi", "lower_priority"),
+      ],
+    }),
+    guidancePoint("gp-apos-reperfusao", {
+      educationalPurpose:
+        "Depois da decisão de reperfusão, organizar vigilância, analgesia e destino.",
+      conditions: [{ kind: "action_performed", actionId: "disposition_cathlab" }],
+      guidedOptions: [
+        guidanceOption("reassess_vitals", "high_priority"),
+        guidanceOption("request_specialist", "reasonable"),
+        guidanceOption("disposition_icu", "reasonable"),
+      ],
+      adaptiveOptions: [
+        guidanceOption("reassess_vitals", "high_priority"),
+        guidanceOption("request_specialist", "reasonable"),
+        guidanceOption("disposition_icu", "reasonable"),
+        guidanceOption("administer_analgesia", "context_dependent"),
+        guidanceOption("request_troponin", "lower_priority"),
+      ],
+    }),
+    ],
+    freeReasoningZones: [
+    freeReasoningZone("frz-conduta-inicial", {
+      label: "Interpretação e conduta definitiva",
+      educationalPurpose:
+        "Interpretar o eletrocardiograma, tratar e decidir a reperfusão sem sugestões na tela.",
+      appliesTo: ["adaptive"],
+      conditions: [
+        { kind: "action_performed", actionId: "request_ecg" },
+        { kind: "action_missing", actionId: "disposition_cathlab" },
+      ],
+    }),
+    ],
+  },
+
   variants: [
     {
       id: "var-intermediario-classico",

@@ -278,7 +278,7 @@ function ResultView({ result }: { result: CompletedTrainingResult }) {
                   {result.transcript.map((entry, index) => (
                     <li key={`${entry.clock}-${index}`} className="py-3">
                       <p className="text-xs text-muted-foreground/70">
-                        {entry.clock} · {entry.source === "voice" ? "voz" : "texto"}
+                        {entry.clock} · {entry.source === "voice" ? "voz" : entry.source === "guided_option" ? "apoio" : "texto"}
                       </p>
                       <p className="mt-1 break-words text-sm text-foreground">
                         Você disse: {entry.rawContent}

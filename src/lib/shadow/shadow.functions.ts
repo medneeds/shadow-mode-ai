@@ -153,6 +153,49 @@ export const runClinicalTurn = createServerFn({ method: "POST" })
 
     const llm = optionalProvider();
 
+    /**
+     * Toque numa opção de andaime autoral: a ação já está resolvida e validada
+     * pelo caso. Vai direto ao motor determinístico — mesma verdade clínica e
+     * mesma pontuação de quem falou ou digitou a mesma conduta.
+     */
+    const forced = (data.forcedActionIds ?? []).filter((id) =>
+      referenceCase.actions.some((a) => a.id === id),
+    );
+    if (forced.length > 0) {
+      const { next, facts } = runActions(forced);
+      const actionsOut = forced.map((actionId) => ({ actionId }));
+      if (isFastPathEligible(facts) || !llm) {
+        const text = composeFastPathResponse(facts, data.config.trainerProfile);
+        return {
+          kind: "clinical_input" as const,
+          runtime: next,
+          actions: actionsOut,
+          metaCommands: [] as MetaCommandDto[],
+          facts,
+          shadowText: text as string | null,
+          speechText: speech(text),
+          fallback: false,
+        };
+      }
+      const composed = await composeShadowResponse(llm, {
+        facts,
+        profile: data.config.trainerProfile,
+        context: data.context,
+        structuredContext,
+        traineeInput: data.rawContent,
+      });
+      return {
+        kind: "clinical_input" as const,
+        runtime: next,
+        actions: actionsOut,
+        metaCommands: [] as MetaCommandDto[],
+        facts,
+        shadowText: composed.text as string | null,
+        speechText: speech(composed.text),
+        fallback: composed.fallback,
+      };
+    }
+
     // Caminho rápido de ENTRADA: fala curta e inequívoca não precisa do modelo.
     const deterministicIds = matchDeterministicActions(
       data.rawContent,
@@ -208,7 +251,7 @@ export const runClinicalTurn = createServerFn({ method: "POST" })
     try {
       interpretation = await interpretInput(llm, referenceCase, {
         rawContent: data.rawContent,
-        source: data.source,
+        source: data.source === "voice" ? "voice" : "text",
         phase: "active_station",
         config: data.config as TrainingConfig,
         context: data.context,

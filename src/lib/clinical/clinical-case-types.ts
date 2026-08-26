@@ -13,6 +13,7 @@ import type { ClinicalEventType } from "@/lib/shadow-trainer";
 import type { LevelId } from "@/lib/shadow-content";
 import type { EvaluationDomain } from "@/lib/evaluation/evaluation-types";
 import type { ClinicalCaseMeta } from "./case-taxonomy";
+import type { CaseGuidance } from "./guidance-types";
 
 /* ---------------------------------------------------------------- ações ---- */
 
@@ -414,6 +415,11 @@ export type ClinicalCaseDefinition = {
   outcomes?: CaseOutcomeDefinition[];
   /** Variantes controladas e clinicamente validadas. */
   variants?: ClinicalCaseVariant[];
+  /**
+   * Andaime pedagógico autoral (Addendum): pontos de guiagem por nível de
+   * autonomia e zonas de raciocínio livre. Nunca altera a verdade clínica.
+   */
+  guidance?: CaseGuidance;
   /**
    * Randomização controlada: apenas estes sinais vitais podem variar, e
    * somente dentro dos valores listados (verdade médica continua autoral).

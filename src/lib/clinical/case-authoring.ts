@@ -19,6 +19,7 @@ import type {
   TriggerCondition,
 } from "./clinical-case-types";
 import type { ClinicalCaseMeta } from "./case-taxonomy";
+import type { FreeReasoningZone, GuidanceOption, GuidancePoint } from "./guidance-types";
 import type { ClinicalEventType } from "@/lib/shadow-trainer";
 
 /* ------------------------------------------------------ estado inicial --- */
@@ -401,4 +402,40 @@ export function defineCase(spec: CaseSpec): ClinicalCaseDefinition {
     },
     fictional: true,
   };
+}
+
+/* ------------------------------------------------------------- andaime --- */
+
+/**
+ * Opção contextual de andaime. O rótulo é sempre uma AÇÃO — nunca um
+ * diagnóstico — e por padrão reaproveita o rótulo canônico do catálogo.
+ */
+export function guidanceOption(
+  actionId: string,
+  role: GuidanceOption["educationalRole"],
+  override: Partial<Omit<GuidanceOption, "actionId" | "educationalRole">> = {},
+): GuidanceOption {
+  return {
+    id: override.id ?? `opt-${actionId}`,
+    label: override.label ?? coreActionCatalog[actionId]?.label ?? actionId,
+    actionId,
+    educationalRole: role,
+    ...override,
+  };
+}
+
+/** Ponto de guiagem autoral. Básico usa 3 opções; intermediário até 5. */
+export function guidancePoint(
+  id: string,
+  spec: Omit<GuidancePoint, "id">,
+): GuidancePoint {
+  return { id, ...spec };
+}
+
+/** Trecho em que nenhuma sugestão aparece: o raciocínio é do trainee. */
+export function freeReasoningZone(
+  id: string,
+  spec: Omit<FreeReasoningZone, "id">,
+): FreeReasoningZone {
+  return { id, ...spec };
 }

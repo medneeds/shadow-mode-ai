@@ -184,6 +184,56 @@ export function validateCase(def: ClinicalCaseDefinition): CaseValidationReport 
       `Nenhuma ação ou gatilho produz a tag de estabilização "${def.completion.stabilizedTag}".`,
     );
 
+  /* --------------------------------------------------------- andaime ---- */
+  const leakTerms = [def.hidden.diagnosis, ...def.hidden.differentials]
+    .flatMap((t) => t.toLowerCase().split(/[\s,;()]+/))
+    .filter((w) => w.length >= 5);
+  const pointIds = new Set<string>();
+  for (const point of def.guidance?.points ?? []) {
+    if (pointIds.has(point.id)) add("duplicate_guidance_point", `Ponto duplicado: ${point.id}.`);
+    pointIds.add(point.id);
+    if (!point.educationalPurpose.trim())
+      add("guidance_no_purpose", `Ponto ${point.id} sem propósito educacional.`);
+
+    const guided = point.guidedOptions ?? [];
+    const adaptive = point.adaptiveOptions ?? [];
+    if (guided.length === 0 && adaptive.length === 0)
+      add("empty_guidance_point", `Ponto ${point.id} sem opções autorais.`);
+    if (guided.length > 0 && guided.length !== 3)
+      add("invalid_guided_density", `Ponto ${point.id}: básico exige exatamente 3 opções.`);
+    if (adaptive.length > 5)
+      add("invalid_adaptive_density", `Ponto ${point.id}: intermediário permite no máximo 5.`);
+    if (adaptive.length > 0 && adaptive.length < 3)
+      add("weak_adaptive_density", `Ponto ${point.id}: intermediário precisa de ao menos 3 opções.`);
+
+    for (const id of point.resolvedByActionIds ?? [])
+      if (!actionIds.has(id))
+        add("unknown_action", `Ponto ${point.id} resolve por ação inexistente: ${id}.`);
+
+    const seen = new Set<string>();
+    for (const option of [...guided, ...adaptive]) {
+      if (!actionIds.has(option.actionId))
+        add("unknown_action", `Opção ${option.id} referencia ação inexistente: ${option.actionId}.`);
+      const key = `${guided.includes(option) ? "g" : "a"}:${option.actionId}`;
+      if (seen.has(key)) add("duplicate_guidance_option", `Opção repetida em ${point.id}: ${option.actionId}.`);
+      seen.add(key);
+      const label = option.label.toLowerCase();
+      if (leakTerms.some((term) => label.includes(term)))
+        add("guidance_diagnosis_leak", `Opção ${option.id} revela verdade oculta do caso.`);
+      if (option.objectiveId && !(def.objectives ?? []).some((o) => o.id === option.objectiveId))
+        add("unknown_objective", `Opção ${option.id} referencia objetivo inexistente.`);
+    }
+  }
+  const zoneIds = new Set<string>();
+  for (const zone of def.guidance?.freeReasoningZones ?? []) {
+    if (zoneIds.has(zone.id)) add("duplicate_free_zone", `Zona livre duplicada: ${zone.id}.`);
+    zoneIds.add(zone.id);
+    if (!zone.educationalPurpose.trim())
+      add("free_zone_no_purpose", `Zona ${zone.id} sem propósito educacional.`);
+  }
+  if (def.meta.difficulty === "avancado" && (def.guidance?.points.length ?? 0) > 0)
+    add("advanced_has_guidance", "Caso avançado não pode ter pontos de guiagem.");
+
   /* ------------------------------------------------------- variantes ---- */
   for (const v of def.variants ?? []) {
     for (const id of Object.keys(v.investigationResults ?? {}))

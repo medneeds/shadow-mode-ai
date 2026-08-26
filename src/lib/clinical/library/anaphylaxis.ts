@@ -8,6 +8,9 @@ import {
   defineCase,
   expected,
   finding,
+  freeReasoningZone,
+  guidanceOption,
+  guidancePoint,
   info,
   infoOnAction,
   investigation,
@@ -305,6 +308,73 @@ export const anaphylaxisCase = defineCase({
     stabilizedTag: "estabilizado",
     maxClinicalSeconds: 900,
   },
+  guidance: {
+    points: [
+    guidancePoint("gp-abertura", {
+      educationalPurpose:
+        "Organizar a avaliação imediata de uma reação grave logo após medicação intravenosa.",
+      guidedOptions: [
+        guidanceOption("assess_airway", "high_priority"),
+        guidanceOption("check_vital_signs", "high_priority"),
+        guidanceOption("history_medications", "reasonable"),
+      ],
+      adaptiveOptions: [
+        guidanceOption("assess_airway", "high_priority"),
+        guidanceOption("check_vital_signs", "high_priority"),
+        guidanceOption("place_monitoring", "reasonable"),
+        guidanceOption("exam_skin", "reasonable"),
+        guidanceOption("history_medications", "lower_priority"),
+      ],
+    }),
+    guidancePoint("gp-conduta-imediata", {
+      educationalPurpose:
+        "Priorizar entre suspender o agente, tratar a reação e dar suporte.",
+      conditions: [{ kind: "any_action_performed", actionIds: ["assess_airway", "check_vital_signs", "exam_skin", "history_medications"] }],
+      guidedOptions: [
+        guidanceOption("administer_epinephrine_im", "high_priority"),
+        guidanceOption("stop_offending_agent", "high_priority"),
+        guidanceOption("administer_oxygen", "reasonable"),
+      ],
+      adaptiveOptions: [
+        guidanceOption("administer_epinephrine_im", "high_priority"),
+        guidanceOption("stop_offending_agent", "high_priority"),
+        guidanceOption("administer_oxygen", "reasonable"),
+        guidanceOption("administer_fluids", "reasonable"),
+        guidanceOption("obtain_iv_access", "context_dependent"),
+      ],
+    }),
+    guidancePoint("gp-apos-tratamento", {
+      educationalPurpose:
+        "Reavaliar a resposta e decidir a vigilância pelo risco de reação tardia.",
+      conditions: [{ kind: "action_performed", actionId: "administer_epinephrine_im" }],
+      guidedOptions: [
+        guidanceOption("reassess_vitals", "high_priority"),
+        guidanceOption("administer_fluids", "reasonable"),
+        guidanceOption("disposition_observation", "high_priority"),
+      ],
+      adaptiveOptions: [
+        guidanceOption("reassess_vitals", "high_priority"),
+        guidanceOption("administer_fluids", "reasonable"),
+        guidanceOption("disposition_observation", "high_priority"),
+        guidanceOption("disposition_icu", "context_dependent"),
+        guidanceOption("secure_airway", "lower_priority"),
+      ],
+    }),
+    ],
+    freeReasoningZones: [
+    freeReasoningZone("frz-decisao-terapeutica", {
+      label: "Decisão terapêutica",
+      educationalPurpose:
+        "No intermediário, reconhecer o quadro e escolher a terapia definitiva é tarefa do trainee.",
+      appliesTo: ["adaptive"],
+      conditions: [
+        { kind: "any_action_performed", actionIds: ["assess_airway", "check_vital_signs", "exam_skin"] },
+        { kind: "action_missing", actionId: "administer_epinephrine_im" },
+      ],
+    }),
+    ],
+  },
+
   variants: [
     {
       id: "var-basico-classico",

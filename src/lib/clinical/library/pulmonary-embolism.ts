@@ -8,6 +8,9 @@ import {
   defineCase,
   expected,
   finding,
+  freeReasoningZone,
+  guidanceOption,
+  guidancePoint,
   info,
   infoOnAction,
   investigation,
@@ -325,6 +328,56 @@ export const pulmonaryEmbolismCase = defineCase({
     stabilizedTag: "estabilizado",
     maxClinicalSeconds: 1500,
   },
+  guidance: {
+    points: [
+    guidancePoint("gp-abertura", {
+      educationalPurpose:
+        "Organizar a abordagem de uma dispneia súbita no pós-operatório.",
+      guidedOptions: [
+        guidanceOption("check_vital_signs", "high_priority"),
+        guidanceOption("administer_oxygen", "high_priority"),
+        guidanceOption("history_hpi", "reasonable"),
+      ],
+      adaptiveOptions: [
+        guidanceOption("check_vital_signs", "high_priority"),
+        guidanceOption("administer_oxygen", "high_priority"),
+        guidanceOption("place_monitoring", "reasonable"),
+        guidanceOption("exam_respiratory", "reasonable"),
+        guidanceOption("history_hpi", "lower_priority"),
+      ],
+    }),
+    guidancePoint("gp-apos-tratamento", {
+      educationalPurpose:
+        "Depois da terapia definitiva, definir vigilância, confirmação e destino.",
+      conditions: [{ kind: "action_performed", actionId: "administer_anticoagulation" }],
+      guidedOptions: [
+        guidanceOption("reassess_vitals", "high_priority"),
+        guidanceOption("request_specialist", "reasonable"),
+        guidanceOption("disposition_icu", "reasonable"),
+      ],
+      adaptiveOptions: [
+        guidanceOption("reassess_vitals", "high_priority"),
+        guidanceOption("request_specialist", "reasonable"),
+        guidanceOption("disposition_icu", "reasonable"),
+        guidanceOption("request_chest_ct", "context_dependent"),
+        guidanceOption("exam_extremities", "lower_priority"),
+      ],
+    }),
+    ],
+    freeReasoningZones: [
+    freeReasoningZone("frz-raciocinio-diagnostico", {
+      label: "Raciocínio diagnóstico e terapia",
+      educationalPurpose:
+        "Levantar a hipótese, escolher exames e decidir a terapia definitiva sem andaime.",
+      appliesTo: ["adaptive"],
+      conditions: [
+        { kind: "any_action_performed", actionIds: ["check_vital_signs", "exam_respiratory"] },
+        { kind: "action_missing", actionId: "administer_anticoagulation" },
+      ],
+    }),
+    ],
+  },
+
   variants: [
     {
       id: "var-intermediario-estavel",

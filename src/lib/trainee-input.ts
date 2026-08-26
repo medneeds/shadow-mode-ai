@@ -21,7 +21,22 @@
  * priorização, tempo e sequência são as únicas dimensões avaliadas.
  */
 
-export type TraineeInputSource = "voice" | "text";
+export type TraineeInputSource = "voice" | "text" | "guided_option";
+
+/**
+ * Proveniência de assistência (Addendum): registra QUE andaime estava visível
+ * quando a entrada aconteceu. Prepara a métrica futura de INDEPENDÊNCIA sem
+ * alterar a pontuação clínica desta fase.
+ */
+export type AssistanceProvenance = {
+  autonomyMode: "guided" | "adaptive" | "autonomous";
+  /** Ponto de guiagem ativo no momento da entrada, quando havia um. */
+  guidancePointId?: string;
+  /** Quantas opções estavam visíveis (0 quando não havia andaime). */
+  visibleOptionCount: number;
+  /** true quando a ação veio de um toque na opção sugerida. */
+  usedGuidedOption: boolean;
+};
 
 export type TraineeInput = {
   id: string;
@@ -38,6 +53,8 @@ export type TraineeInput = {
    * aqui apenas preservamos o contrato.
    */
   interpretation?: TraineeInputInterpretation;
+  /** Contexto de assistência — analytics futuros, nunca a nota clínica. */
+  provenance?: AssistanceProvenance;
 };
 
 /** Ação clínica estruturada derivada de uma entrada — nunca substitui o texto original. */
@@ -67,6 +84,7 @@ export function createTraineeInput(params: {
   source: TraineeInputSource;
   rawContent: string;
   clinicalTime: number;
+  provenance?: AssistanceProvenance;
 }): TraineeInput {
   return {
     id:
@@ -79,6 +97,7 @@ export function createTraineeInput(params: {
     timestamp: Date.now(),
     clinicalTime: Math.max(0, Math.floor(params.clinicalTime)),
     interpretation: { status: "pending", actions: [] },
+    ...(params.provenance ? { provenance: params.provenance } : {}),
   };
 }
 
