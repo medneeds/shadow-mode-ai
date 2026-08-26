@@ -97,8 +97,8 @@ export const trainerProfiles: {
   },
 ];
 
-export function interactionModeLabel(id: InteractionMode): string {
-  return interactionModes.find((m) => m.id === id)?.label ?? "";
+export function shadowOutputModeLabel(id: ShadowOutputMode): string {
+  return shadowOutputModes.find((m) => m.id === id)?.label ?? "";
 }
 
 export function voicePreferenceLabel(id: VoicePreference): string {
