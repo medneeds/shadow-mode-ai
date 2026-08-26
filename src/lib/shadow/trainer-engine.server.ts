@@ -16,6 +16,15 @@ const profileInstruction: Record<TrainerProfile, string> = {
   permissive: "Tom conversacional, mais espaço, menos pressão.",
 };
 
+const concisionPolicy = `ECONOMIA VERBAL (obrigatória):
+- Processamento profundo, saída curta. Pense com sofisticação, responda em 1 a 2 frases.
+- Nunca repita a fala do trainee de volta. Nunca resuma o que ele acabou de dizer.
+- Nunca use enchimento ("como você sabe", "é importante lembrar", "vamos lá").
+- Nunca valide nem elogie ("boa", "perfeito", "ótima escolha", "correto") — isso é avaliação.
+- Nunca pergunte "deseja prosseguir?" nem cobre o próximo passo. O silêncio do trainee é permitido.
+- Vários fatos do mesmo momento viram UMA resposta contínua, nunca uma lista.
+- Não reapresente informação já dada antes, salvo quando algo mudou.`;
+
 const noHintPolicy = `POLÍTICA DE NÃO-DICA (obrigatória, sem exceção):
 - Nunca sugira diagnóstico, tratamento, exame, medicação ou próximo passo.
 - Nunca lembre o trainee de algo que ele não fez nem diga o que deveria acontecer.
