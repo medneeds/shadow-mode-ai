@@ -7,13 +7,10 @@ import { Button } from "@/components/ui/button";
 import { OnboardingFlow } from "@/components/shadow/OnboardingFlow";
 import { useTrainingSession } from "@/lib/session-store";
 import {
-  careerStages,
   clearDoctorProfile,
-  comfortOptions,
   loadDoctorProfile,
   profileDefaults,
-  stressStyles,
-  toneOptions,
+  profileRows,
   type DoctorProfile,
 } from "@/lib/profile/doctor-profile";
 import { pageTitle } from "@/lib/brand";
@@ -64,35 +61,7 @@ function ProfilePage() {
     );
   }
 
-  const rows = profile
-    ? [
-        { label: "Momento", value: careerStages.find((s) => s.id === profile.stage)?.label },
-        { label: "Sob pressão", value: stressStyles.find((s) => s.id === profile.stress)?.label },
-        {
-          label: "Domínios",
-          value: profile.strengths.length > 0 ? profile.strengths.join(", ") : undefined,
-        },
-        {
-          label: "Escassez de recursos",
-          value: comfortOptions.find((c) => c.id === profile.scarcity)?.label,
-        },
-        {
-          label: "Raciocínio rápido",
-          value: comfortOptions.find((c) => c.id === profile.fastThinking)?.label,
-        },
-        { label: "Expectativa", value: profile.expectation ?? undefined },
-        {
-          label: "Voz do Sombra",
-          value:
-            profile.voicePreference === "male"
-              ? "Masculina"
-              : profile.voicePreference === "female"
-                ? "Feminina"
-                : undefined,
-        },
-        { label: "Tom", value: toneOptions.find((t) => t.id === profile.tone)?.label },
-      ]
-    : [];
+  const rows = profile ? profileRows(profile) : [];
 
   return (
     <AppShell>
