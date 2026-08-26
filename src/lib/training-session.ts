@@ -12,6 +12,7 @@ import type {
   VoicePreference,
 } from "./shadow-trainer";
 import type { TraineeInput } from "./trainee-input";
+import type { SpeechRate } from "./voice/voice-types";
 
 export type SessionStatus = "configuring" | "ready" | "active" | "paused" | "finished";
 
