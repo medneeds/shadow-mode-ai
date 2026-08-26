@@ -13,13 +13,15 @@ export const voiceStateLabels: Record<VoiceState, string> = {
 
 /**
  * Presença de voz do Shadow — uma presença inteligente, não um personagem.
- * Estados são visuais nesta fase (sem provedor de voz).
+ * `amplitude` (0..1) vem do microfone (ouvindo) ou do áudio do Sombra (falando).
  */
 export function VoicePresence({
   state = "idle",
+  amplitude = 0,
   className,
 }: {
   state?: VoiceState;
+  amplitude?: number;
   className?: string;
 }) {
   const animated = state === "listening" || state === "speaking" || state === "idle";
