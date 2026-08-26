@@ -11,6 +11,7 @@
 import type { LlmProvider } from "@/lib/ai/provider";
 import type { ClinicalCaseDefinition } from "@/lib/clinical/clinical-case-types";
 import type { TrainingConfig } from "@/lib/training-session";
+import { aliasHintsFor } from "./speech-normalization";
 import {
   buildInterpretationJsonSchema,
   interpretationSchema,
