@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowUp, Mic, MicOff } from "lucide-react";
+import { ArrowUp, Mic, MicOff, SlidersHorizontal } from "lucide-react";
 
 import { useVoiceCapture } from "@/lib/voice/use-voice-capture";
 import { useShadowSpeech } from "@/lib/voice/use-shadow-speech";
@@ -13,7 +13,7 @@ import type { TraineeInputSource } from "@/lib/trainee-input";
 import { AppShell } from "@/components/layout/AppShell";
 import { VoicePresence } from "@/components/shadow/VoicePresence";
 import { Button } from "@/components/ui/button";
-import { OptionChip, PageSection, SectionHeading } from "@/components/ui/section";
+import { OptionChip, PageSection } from "@/components/ui/section";
 import { durations, levels, themes, type LevelId } from "@/lib/shadow-content";
 import { useTrainingSession } from "@/lib/session-store";
 import {
@@ -197,21 +197,11 @@ function TrainingSetup() {
   return (
     <AppShell>
       <PageSection>
-        <SectionHeading
-          eyebrow="Treinar"
-          title="O que vamos treinar?"
-          description="Diga em uma frase. O Sombra monta a estação — você só ajusta se quiser."
-        />
-
-        <div className="mt-10 flex flex-col items-center text-center">
+        <div className="flex flex-col items-center text-center">
           {earlier.length > 0 && (
-            <div className="mb-5 flex max-w-md flex-col gap-1">
-              {earlier.map((m) => (
-                <p key={m.id} className="truncate text-xs text-muted-foreground/50">
-                  {m.text}
-                </p>
-              ))}
-            </div>
+            <p className="mb-4 line-clamp-1 max-w-md text-xs text-muted-foreground/40">
+              {earlier[earlier.length - 1]?.text}
+            </p>
           )}
 
           <VoicePresence
@@ -224,10 +214,12 @@ function TrainingSetup() {
                     ? "listening"
                     : "idle"
             }
-            amplitude={speech.speaking ? speech.amplitude : capture.amplitude}
+            getAmplitude={() =>
+              speech.speaking ? speech.getAmplitude() : capture.active ? capture.getAmplitude() : 0
+            }
           />
 
-          <p aria-live="polite" className="mt-6 max-w-lg font-display text-xl leading-relaxed">
+          <p aria-live="polite" className="mt-2 max-w-lg font-display text-xl leading-relaxed">
             {lastShadow?.text ?? setupOpeningQuestion}
           </p>
 
@@ -241,17 +233,17 @@ function TrainingSetup() {
               }}
               aria-label={capture.active ? "Desativar microfone" : "Falar com o Sombra"}
               aria-pressed={capture.active}
+              title={capture.active ? "Microfone ativo" : "Microfone"}
               className={cn(
-                "mt-6 flex items-center gap-2 rounded-full border border-hairline bg-surface/70 px-4 py-2 text-xs text-muted-foreground transition-colors hover:text-foreground",
-                capture.active && "border-moss/50 text-foreground",
+                "mt-6 flex size-12 items-center justify-center rounded-full text-muted-foreground/70 transition-all duration-200 hover:scale-[1.03] hover:bg-surface-raised/50 hover:text-foreground active:scale-95",
+                capture.active && "bg-surface-raised/60 text-foreground",
               )}
             >
               {capture.active ? (
-                <Mic aria-hidden className="size-4" />
+                <Mic aria-hidden className="size-5" />
               ) : (
-                <MicOff aria-hidden className="size-4" />
+                <MicOff aria-hidden className="size-5" />
               )}
-              {capture.active ? "Ouvindo…" : "Falar"}
             </button>
           )}
 
@@ -268,7 +260,7 @@ function TrainingSetup() {
               setDraft("");
               void send(content);
             }}
-            className="mt-8 flex w-full max-w-md items-end gap-2 rounded-2xl border border-hairline bg-surface/70 px-3 py-2 focus-within:border-moss/50"
+            className="mt-6 flex w-full max-w-md items-end gap-2 border-b border-hairline pb-1 focus-within:border-moss/50"
           >
             <label className="sr-only" htmlFor="config-fala">
               Descreva a estação
@@ -287,40 +279,40 @@ function TrainingSetup() {
               }}
               rows={1}
               disabled={busy}
-              placeholder="Ex.: emergência, avançado, 15 minutos"
+              placeholder="O que vamos treinar hoje?"
               className="max-h-24 flex-1 resize-none bg-transparent py-2 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none disabled:opacity-50"
             />
             <button
               type="submit"
               aria-label="Enviar"
               disabled={busy || !draft.trim()}
-              className="mb-1 flex size-9 shrink-0 items-center justify-center rounded-full border border-moss/50 text-foreground transition-colors hover:bg-surface-raised disabled:opacity-40"
+              className={cn(
+                "mb-1 flex size-11 shrink-0 items-center justify-center rounded-full text-muted-foreground/50 transition-all duration-200 active:scale-95",
+                draft.trim() && "text-foreground hover:bg-surface-raised/60",
+              )}
             >
-              <ArrowUp aria-hidden className="size-4" />
+              <ArrowUp aria-hidden className="size-5" />
             </button>
           </form>
 
-          <div className="mt-8 w-full max-w-md rounded-xl border border-hairline bg-surface p-4 text-left">
-            <p className="eyebrow">Sua estação</p>
-            <p className="mt-2 font-display text-base">{configSummary(config)}</p>
-            <p className="mt-1 text-xs text-muted-foreground">{configSecondaryLine(config)}</p>
-            <div className="mt-4 flex flex-wrap items-center gap-3">
+          {/* Configuração é contexto, não um painel de ajustes. */}
+          <div className="mt-10 flex flex-col items-center gap-1">
+            <p className="font-display text-sm text-foreground">{configSummary(config)}</p>
+            <p className="text-xs text-muted-foreground/70">{configSecondaryLine(config)}</p>
+            <div className="mt-5 flex items-center gap-4">
               <Button size="sm" onClick={handleStart} disabled={busy}>
                 Entrar no Modo Sombra
               </Button>
               <button
                 type="button"
                 onClick={() => setShowAdjust((v) => !v)}
-                className="rounded-md px-1 text-xs text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+                aria-expanded={showAdjust}
+                className="flex items-center gap-1.5 rounded-md px-1 text-xs text-muted-foreground/70 transition-colors hover:text-foreground"
               >
-                {showAdjust ? "Ocultar ajustes" : "Ajustar"}
+                <SlidersHorizontal aria-hidden className="size-3.5" />
+                {showAdjust ? "Ocultar" : "Ajustar"}
               </button>
             </div>
-            {question && (
-              <p className="mt-3 text-xs text-muted-foreground/70">
-                Ainda posso ajustar pelo que você disser: {question.toLowerCase()}
-              </p>
-            )}
           </div>
         </div>
       </PageSection>

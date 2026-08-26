@@ -109,6 +109,16 @@
   --gold: oklch(0.72 0.075 84);
   --gold-soft: oklch(0.72 0.075 84 / 0.16);
   --gold-foreground: oklch(0.18 0.026 245);
+
+  /*
+   * Voice Presence — escopo EXCLUSIVO da visualização de voz.
+   * Não faz parte da identidade global (navy/moss/gold permanece).
+   */
+  --voice-blue: oklch(0.58 0.11 258);
+  --voice-indigo: oklch(0.56 0.13 278);
+  --voice-violet: oklch(0.58 0.12 300);
+  --voice-cyan: oklch(0.68 0.08 214);
+  --voice-halo: oklch(0.56 0.12 272 / 0.2);
 }
 
 @layer base {
@@ -193,6 +203,33 @@
 
 @utility animate-pulse-ring {
   animation: shadow-pulse-ring 3.2s ease-out infinite;
+}
+
+/* Campo ambiente que enquadra a presença — nunca decorativo pela aplicação toda */
+@utility presence-field {
+  background: radial-gradient(circle at 50% 45%, var(--voice-halo), transparent 68%);
+}
+
+/* Deriva espectral quase imperceptível dentro da presença de voz */
+@keyframes voice-spectral-drift {
+  0% {
+    --voice-hue-shift: 0deg;
+    filter: hue-rotate(0deg);
+  }
+  50% {
+    filter: hue-rotate(14deg);
+  }
+  100% {
+    filter: hue-rotate(0deg);
+  }
+}
+
+@utility animate-spectral {
+  animation: voice-spectral-drift 26s ease-in-out infinite;
+}
+
+@utility safe-bottom {
+  padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
 }
 
 @media (prefers-reduced-motion: reduce) {

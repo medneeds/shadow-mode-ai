@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowUp, Mic, MicOff, Pause, Play, Square, Volume2, VolumeX } from "lucide-react";
 
-import { VoicePresence, voiceStateLabels } from "@/components/shadow/VoicePresence";
+import { VoicePresence } from "@/components/shadow/VoicePresence";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { PageSection, SectionHeading } from "@/components/ui/section";
@@ -403,7 +403,7 @@ function ShadowRoom() {
 
   const paused = status === "paused";
   const lastShadow = [...roomMessages].reverse().find((m) => m.role === "shadow");
-  const previous = roomMessages.slice(-4, -1);
+  const lastTrainee = [...roomMessages].reverse().find((m) => m.role === "trainee");
 
   const micFailed =
     capture.status === "denied" || capture.status === "error" || capture.status === "unsupported";
@@ -421,106 +421,92 @@ function ShadowRoom() {
           ? "listening"
           : voiceStateFromSession;
 
-  const amplitude = speech.speaking ? speech.amplitude : capture.active ? capture.amplitude : 0;
+  // Amplitude REAL, lida por quadro dentro da presença (sem render por amostra).
+  const getAmplitude = () =>
+    speech.speaking ? speech.getAmplitude() : capture.active ? capture.getAmplitude() : 0;
+
+  const errorNotice = voiceNotice ?? (micFailed ? capture.message : null);
 
   return (
-    <div className="room-backdrop flex min-h-screen flex-col">
-      <header className="flex items-center justify-between px-5 py-5 sm:px-8">
-        <p className="eyebrow">Modo Sombra</p>
-        <button
-          type="button"
-          onClick={() => setConfirmOpen(true)}
-          className="rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
-        >
-          Encerrar estação
-        </button>
+    <div className="room-backdrop flex min-h-dvh flex-col">
+      <header className="flex items-center justify-center px-5 pt-5">
+        <p className="eyebrow opacity-60">Modo Sombra</p>
       </header>
 
-      <main className="flex flex-1 flex-col items-center justify-center px-5 pb-6 text-center">
-        {previous.length > 0 && (
-          <div className="mb-5 flex max-w-md flex-col gap-1">
-            {previous.map((m) => (
-              <p
-                key={m.id}
-                className={cn(
-                  "truncate text-xs",
-                  m.role === "shadow" ? "text-muted-foreground/60" : "text-muted-foreground/40",
-                )}
-              >
-                {m.text}
-              </p>
-            ))}
-          </div>
+      <main className="flex flex-1 flex-col items-center justify-center gap-1 px-5 text-center">
+        {lastTrainee && (
+          <p className="line-clamp-1 max-w-md text-xs text-muted-foreground/40">
+            {lastTrainee.text}
+          </p>
         )}
 
-        <VoicePresence state={voiceState} amplitude={amplitude} />
-
-        <p aria-live="polite" className="mt-5 max-w-lg font-display text-lg leading-relaxed">
-          {paused ? "Estação pausada" : (lastShadow?.text ?? voiceStateLabels[voiceState])}
+        <p
+          aria-live="polite"
+          className="max-w-lg font-display text-lg leading-relaxed text-foreground sm:text-xl"
+        >
+          {paused ? "Estação pausada" : (lastShadow?.text ?? "")}
         </p>
 
-        <div className="mt-6 h-px w-40 bg-hairline" aria-hidden />
+        <VoicePresence
+          state={voiceState}
+          getAmplitude={getAmplitude}
+          pace={profilePace[config.trainerProfile] ?? 1}
+          className="-my-4"
+        />
 
         <p
-          className="mt-5 font-display text-2xl tabular-nums text-muted-foreground"
-          aria-live="off"
+          className="font-display text-xl tabular-nums text-muted-foreground/70"
           aria-label={`Tempo restante: ${formatClock(session.remainingSeconds)}`}
         >
-          {formatClock(session.remainingSeconds)} <span className="text-sm">restantes</span>
+          {formatClock(session.remainingSeconds)}
         </p>
       </main>
 
-      <footer className="px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-8">
+      <footer className="safe-bottom px-5 pt-2 sm:px-8">
         {showComposer && (
-          <div className="mx-auto mb-5 max-w-md">
-            {notice && (
-              <p className="mb-2 text-center text-[11px] text-muted-foreground/70">{notice}</p>
-            )}
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                sendDraft();
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              sendDraft();
+            }}
+            className="mx-auto mb-3 flex max-w-md items-end gap-2 border-b border-hairline pb-1 focus-within:border-moss/50"
+          >
+            <label className="sr-only" htmlFor="conduta">
+              Sua conduta
+            </label>
+            <textarea
+              id="conduta"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  sendDraft();
+                }
               }}
-              className="flex items-end gap-2 rounded-2xl border border-hairline bg-surface/70 px-3 py-2 focus-within:border-moss/50"
+              rows={1}
+              disabled={status !== "active" || busy}
+              placeholder="Sua conduta…"
+              className="max-h-24 flex-1 resize-none bg-transparent py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none disabled:opacity-50"
+            />
+            <button
+              type="submit"
+              aria-label="Enviar conduta"
+              disabled={status !== "active" || busy || !draft.trim()}
+              className={cn(
+                "mb-1 flex size-11 shrink-0 items-center justify-center rounded-full text-muted-foreground/50 transition-all duration-200 active:scale-95",
+                draft.trim() && "text-foreground hover:bg-surface-raised/60",
+              )}
             >
-              <label className="sr-only" htmlFor="conduta">
-                Digite sua conduta
-              </label>
-              <textarea
-                id="conduta"
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    sendDraft();
-                  }
-                }}
-                rows={1}
-                disabled={status !== "active" || busy}
-                placeholder="Digite sua conduta…"
-                className="max-h-24 flex-1 resize-none bg-transparent py-2 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none disabled:opacity-50"
-              />
-              <button
-                type="submit"
-                aria-label="Enviar conduta"
-                disabled={status !== "active" || busy || !draft.trim()}
-                className="mb-1 flex size-9 shrink-0 items-center justify-center rounded-full border border-moss/50 text-foreground transition-colors hover:bg-surface-raised disabled:opacity-40"
-              >
-                <ArrowUp aria-hidden className="size-4" />
-              </button>
-            </form>
-          </div>
+              <ArrowUp aria-hidden className="size-5" />
+            </button>
+          </form>
         )}
 
-        <div className="mx-auto flex max-w-md items-center justify-center gap-3">
+        <div className="mx-auto flex max-w-md items-center justify-center gap-2">
           {wantsVoiceInput && !voiceInputBroken && (
             <RoomButton
-              label={
-                capture.active
-                  ? "Microfone ativo, desativar captura"
-                  : "Ativar microfone e começar a ouvir"
-              }
+              label={capture.active ? "Microfone ativo" : "Microfone"}
               onClick={toggleMic}
               active={capture.active}
               pressed={capture.active}
@@ -547,10 +533,7 @@ function ShadowRoom() {
             </RoomButton>
           )}
 
-          <RoomButton
-            label={paused ? "Retomar estação" : "Pausar estação"}
-            onClick={() => (paused ? resumeSession() : pauseSession())}
-          >
+          <RoomButton label={paused ? "Retomar" : "Pausar"} onClick={() => (paused ? resumeSession() : pauseSession())}>
             {paused ? (
               <Play aria-hidden className="size-5" />
             ) : (
@@ -558,29 +541,16 @@ function ShadowRoom() {
             )}
           </RoomButton>
 
-          <RoomButton label="Encerrar estação" onClick={() => setConfirmOpen(true)}>
+          <RoomButton label="Encerrar" onClick={() => setConfirmOpen(true)}>
             <Square aria-hidden className="size-5" />
           </RoomButton>
         </div>
 
-        <p className="mt-4 text-center text-[11px] text-muted-foreground" aria-live="polite">
-          {voiceNotice ??
-            capture.message ??
-            (busy
-              ? "Sombra está processando"
-              : capture.active
-                ? "Ouvindo…"
-                : wantsVoiceInput && !voiceInputBroken
-                  ? "Toque no microfone para falar"
-                  : "Responda pelo campo de texto")}
-        </p>
-
-        {paused && (
-          <div className="mt-3 flex justify-center">
-            <Button variant="ghost" size="sm" onClick={resumeSession}>
-              Retomar estação
-            </Button>
-          </div>
+        {/* Erros são contextuais e discretos: nunca tomam a tela. */}
+        {(errorNotice ?? notice) && (
+          <p className="mt-3 text-center text-[11px] text-muted-foreground/70" aria-live="polite">
+            {errorNotice ?? notice}
+          </p>
         )}
       </footer>
 
@@ -623,11 +593,21 @@ function RoomButton({
       aria-pressed={pressed}
       title={label}
       className={cn(
-        "flex size-14 items-center justify-center rounded-full border border-hairline bg-surface/70 text-muted-foreground transition-colors hover:bg-surface-raised hover:text-foreground active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss",
-        active && "border-moss/50 text-foreground",
+        "flex size-12 items-center justify-center rounded-full text-muted-foreground/70 transition-all duration-200",
+        "hover:scale-[1.03] hover:bg-surface-raised/50 hover:text-foreground active:scale-95",
+        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss",
+        active && "bg-surface-raised/60 text-foreground",
       )}
     >
       {children}
     </button>
   );
 }
+
+/** Ritmo visual por perfil — sutil, nunca um tema diferente por perfil. */
+const profilePace: Record<string, number> = {
+  gentle: 0.85,
+  assertive: 1.12,
+  fast_paced: 1.25,
+  permissive: 0.92,
+};

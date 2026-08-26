@@ -24,6 +24,9 @@ export function useShadowSpeech() {
   const ctxRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const rafRef = useRef<number | null>(null);
+  // Amplitude real do playback: ref por quadro + estado publicado com parcimônia.
+  const amplitudeRef = useRef(0);
+  const lastPublishRef = useRef(0);
 
   const releaseAudio = useCallback(() => {
     if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
@@ -39,6 +42,7 @@ export function useShadowSpeech() {
     if (urlRef.current) URL.revokeObjectURL(urlRef.current);
     urlRef.current = null;
     analyserRef.current = null;
+    amplitudeRef.current = 0;
     setAmplitude(0);
   }, []);
 
@@ -113,7 +117,13 @@ export function useShadowSpeech() {
               const v = (data[i]! - 128) / 128;
               sum += v * v;
             }
-            setAmplitude(Math.min(1, Math.sqrt(sum / data.length) * 4));
+            const level = Math.min(1, Math.sqrt(sum / data.length) * 4);
+            amplitudeRef.current = level;
+            const stamp = performance.now();
+            if (stamp - lastPublishRef.current > 200) {
+              lastPublishRef.current = stamp;
+              setAmplitude(level);
+            }
             rafRef.current = requestAnimationFrame(tick);
           };
           rafRef.current = requestAnimationFrame(tick);
@@ -164,5 +174,13 @@ export function useShadowSpeech() {
     [releaseAudio],
   );
 
-  return { speak, stop, speaking, amplitude, failed };
+  return {
+    speak,
+    stop,
+    speaking,
+    amplitude,
+    /** Leitura por quadro, sem re-renderização do React. */
+    getAmplitude: () => amplitudeRef.current,
+    failed,
+  };
 }
