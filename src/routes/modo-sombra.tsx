@@ -461,6 +461,10 @@ function ShadowRoom() {
           className="-my-4"
         />
 
+        <PresenceStatus state={voiceState} className="mt-1" />
+
+
+
         <p
           className="font-display text-xl tabular-nums text-muted-foreground/70"
           aria-label={`Tempo restante: ${formatClock(session.remainingSeconds)}`}
