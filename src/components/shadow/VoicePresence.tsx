@@ -110,14 +110,20 @@ export function VoicePresence({
               ? target.ampFloor * (0.7 + 0.3 * Math.sin(now / 2600))
               : target.ampFloor;
 
-      // Subida rápida (reação verdadeira), descida suave (nunca violento).
-      const k = targetAmp > visualAmp ? 0.22 : 0.09;
+      // Subida quase imediata (a esfera reage à sílaba), descida suave.
+      const k = targetAmp > visualAmp ? 0.45 : 0.11;
       visualAmp += (targetAmp - visualAmp) * k;
-      visualScale += (target.scale - visualScale) * 0.06;
-      visualCore += (target.core - visualCore) * 0.07;
-      visualGlow += (target.glow - visualGlow) * 0.07;
+      // A escala também respira com a voz: o campo avança quando há som real.
+      const liveScale =
+        current === "listening" || current === "speaking"
+          ? target.scale + visualAmp * 0.14
+          : target.scale;
+      visualScale += (liveScale - visualScale) * 0.14;
+      visualCore += (target.core - visualCore) * 0.12;
+      visualGlow += (target.glow - visualGlow) * 0.12;
 
-      phase += dt * target.speed * speedPace;
+      // A fala acelera o próprio deslocamento das ondas.
+      phase += dt * target.speed * speedPace * (1 + visualAmp * 1.1);
 
       for (const [index, layer] of layerRefs.current.entries()) {
         const config = LAYERS[index];
@@ -125,13 +131,15 @@ export function VoicePresence({
         layer.setAttribute("d", wavePath(config, visualScale, visualAmp, phase));
         layer.setAttribute(
           "opacity",
-          (config.opacity * (0.5 + 0.5 * visualCore) * (0.65 + visualAmp * 0.5)).toFixed(3),
+          (config.opacity * (0.5 + 0.5 * visualCore) * (0.55 + visualAmp * 0.75)).toFixed(3),
         );
       }
 
-      coreRef.current?.setAttribute("opacity", visualCore.toFixed(3));
-      coreRef.current?.setAttribute("r", (CORE_R * (0.985 + visualAmp * 0.035)).toFixed(2));
-      glowRef.current?.setAttribute("opacity", (visualGlow * (0.7 + visualAmp * 0.6)).toFixed(3));
+      coreRef.current?.setAttribute("opacity", Math.min(1, visualCore + visualAmp * 0.25).toFixed(3));
+      coreRef.current?.setAttribute("r", (CORE_R * (0.97 + visualAmp * 0.11)).toFixed(2));
+      glowRef.current?.setAttribute("opacity", (visualGlow * (0.6 + visualAmp * 0.9)).toFixed(3));
+      glowRef.current?.setAttribute("r", (66 * (0.96 + visualAmp * 0.16)).toFixed(2));
+
 
       raf = requestAnimationFrame(tick);
     };
@@ -244,12 +252,13 @@ type StateTarget = {
 
 const STATE_TARGETS: Record<VoiceState, StateTarget> = {
   idle: { ampFloor: 0.1, ampGain: 0, scale: 1, speed: 0.18, core: 0.5, glow: 0.42 },
-  listening: { ampFloor: 0.12, ampGain: 0.9, scale: 1.04, speed: 0.32, core: 0.78, glow: 0.6 },
+  listening: { ampFloor: 0.1, ampGain: 1.55, scale: 1.02, speed: 0.34, core: 0.78, glow: 0.6 },
   processing: { ampFloor: 0.16, ampGain: 0, scale: 0.86, speed: 0.75, core: 0.66, glow: 0.5 },
-  speaking: { ampFloor: 0.16, ampGain: 1, scale: 1.1, speed: 0.42, core: 1, glow: 0.9 },
+  speaking: { ampFloor: 0.14, ampGain: 1.5, scale: 1.06, speed: 0.44, core: 1, glow: 0.9 },
   paused: { ampFloor: 0.02, ampGain: 0, scale: 0.97, speed: 0.05, core: 0.32, glow: 0.2 },
   finished: { ampFloor: 0.04, ampGain: 0, scale: 0.95, speed: 0.08, core: 0.38, glow: 0.26 },
 };
+
 
 function clamp(value: number) {
   return Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : 0;
@@ -260,7 +269,7 @@ function wavePath(layer: Layer, scale: number, amp: number, phase: number) {
   const base = layer.radius * scale;
   // Termo de forma constante: as camadas nunca são círculos perfeitos,
   // mesmo em silêncio — a amplitude real apenas expande o que já é orgânico.
-  const gain = layer.gain * (0.28 + amp * 0.9);
+  const gain = layer.gain * (0.26 + amp * 1.35);
   let d = "";
   for (let i = 0; i <= POINTS; i += 1) {
     const theta = (i / POINTS) * Math.PI * 2;

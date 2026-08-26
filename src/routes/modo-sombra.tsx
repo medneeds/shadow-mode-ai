@@ -7,6 +7,8 @@ import { VoicePresence } from "@/components/shadow/VoicePresence";
 import { PresenceStatus } from "@/components/shadow/PresenceStatus";
 import { PresenceControl } from "@/components/shadow/PresenceControl";
 import { ComposerMic } from "@/components/shadow/ComposerMic";
+import { AmbientTranscript } from "@/components/shadow/AmbientTranscript";
+
 
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
@@ -101,9 +103,9 @@ function ShadowRoom() {
 
   const speech = useShadowSpeech();
 
-  /* --- disponibilidade: nada de voz é inicializado no modo texto puro --- */
+  /* --- disponibilidade da voz: consultada sempre, para que ATIVAR VOZ exista
+     mesmo quando a estação começou em modo texto. --- */
   useEffect(() => {
-    if (!wantsVoiceInput && !wantsVoiceOutput) return;
     const controller = new AbortController();
     void fetchVoiceAvailability(controller.signal).then((result) => {
       if (controller.signal.aborted) return;
@@ -111,7 +113,8 @@ function ShadowRoom() {
       if (!result.speechToText && wantsVoiceInput) setVoiceNotice(voiceMessages.notConfigured);
     });
     return () => controller.abort();
-  }, [wantsVoiceInput, wantsVoiceOutput]);
+  }, [wantsVoiceInput]);
+
 
   /**
    * Fala o texto CANÔNICO já exibido. speechText é a MESMA resposta, apenas
@@ -398,7 +401,9 @@ function ShadowRoom() {
     }
     setAudioMuted(false);
     if (config.shadowOutputMode !== "voice_text") setConfig({ shadowOutputMode: "voice_text" });
+    setVoiceNotice(availability?.textToSpeech === false ? voiceMessages.notConfigured : null);
   };
+
 
 
   if (!session) {
@@ -422,7 +427,7 @@ function ShadowRoom() {
 
   const paused = status === "paused";
   const lastShadow = [...roomMessages].reverse().find((m) => m.role === "shadow");
-  const lastTrainee = [...roomMessages].reverse().find((m) => m.role === "trainee");
+  
 
   const micFailed =
     capture.status === "denied" || capture.status === "error" || capture.status === "unsupported";
@@ -447,18 +452,15 @@ function ShadowRoom() {
   const errorNotice = voiceNotice ?? (micFailed ? capture.message : null);
 
   return (
-    <div className="room-backdrop flex min-h-dvh flex-col">
-      <header className="flex items-center justify-center px-5 pt-5">
+    <div className="room-backdrop relative flex min-h-dvh flex-col">
+      {/* Chat discreto que se forma atrás da estação — memória, não interface. */}
+      <AmbientTranscript messages={roomMessages} />
+
+      <header className="relative z-10 flex items-center justify-center px-5 pt-5">
         <p className="eyebrow opacity-60">Modo Sombra</p>
       </header>
 
-      <main className="flex flex-1 flex-col items-center justify-center gap-1 px-5 text-center">
-        {lastTrainee && (
-          <p className="line-clamp-1 max-w-md text-xs text-muted-foreground/40">
-            {lastTrainee.text}
-          </p>
-        )}
-
+      <main className="relative z-10 flex flex-1 flex-col items-center justify-center gap-1 px-5 text-center">
         <p
           aria-live="polite"
           className="max-w-lg font-display text-lg leading-relaxed text-foreground sm:text-xl"
@@ -496,22 +498,18 @@ function ShadowRoom() {
           />
         </PresenceControl>
 
-        <PresenceStatus state={voiceState} className="mt-1" />
-
-
-
-
-
+        <PresenceStatus state={voiceState} className="-mt-1" />
 
         <p
-          className="font-display text-xl tabular-nums text-muted-foreground/70"
+          className="mt-2 font-display text-xl tabular-nums text-muted-foreground/70"
           aria-label={`Tempo restante: ${formatClock(session.remainingSeconds)}`}
         >
           {formatClock(session.remainingSeconds)}
         </p>
       </main>
 
-      <footer className="safe-bottom px-5 pt-2 sm:px-8">
+
+      <footer className="safe-bottom relative z-10 px-5 pt-2 sm:px-8">
         {showComposer && (
           <form
             onSubmit={(e) => {
@@ -577,10 +575,11 @@ function ShadowRoom() {
             </RoomButton>
           )}
 
-          {availability?.textToSpeech && (
+          {/* A voz do Sombra é sempre oferecível — mesmo em estação de texto. */}
+          {availability?.textToSpeech !== false && (
             <RoomButton
               label={shadowVoiceOn ? "Desligar a voz do Sombra" : "Ativar a voz do Sombra"}
-              text={shadowVoiceOn ? "Voz ligada" : "Ativar voz"}
+              text={shadowVoiceOn ? "Voz ligada" : "Ativar voz do Sombra"}
               onClick={toggleAudio}
               active={shadowVoiceOn}
               pressed={shadowVoiceOn}
@@ -592,6 +591,7 @@ function ShadowRoom() {
               )}
             </RoomButton>
           )}
+
 
 
           <RoomButton label={paused ? "Retomar" : "Pausar"} onClick={() => (paused ? resumeSession() : pauseSession())}>
