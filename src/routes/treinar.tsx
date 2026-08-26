@@ -231,7 +231,7 @@ function TrainingSetup() {
           <legend className="eyebrow">Perfil do treinador</legend>
 
           <div className="mt-4">
-            <p className="text-sm text-muted-foreground">Perfil</p>
+            <p className="text-sm text-muted-foreground">Estilo de condução do Sombra</p>
             <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
               {trainerProfiles.map((p) => (
                 <OptionChip
