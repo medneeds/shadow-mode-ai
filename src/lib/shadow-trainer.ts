@@ -1,0 +1,127 @@
+/**
+ * Shadow Trainer — configuração de interação e arquitetura futura.
+ *
+ * Separação arquitetural obrigatória:
+ * - Case Engine (Phase 03+): verdade clínica, fisiologia, consequências, tempo,
+ *   informações disponíveis e ações esperadas.
+ * - Shadow Trainer Engine: apenas linguagem, tom, ritmo, tamanho da resposta e
+ *   pressão conversacional. Nunca altera a verdade médica do caso.
+ *
+ * Política de não-dica (no-hint policy) durante estação ativa: o Sombra descreve
+ * a realidade clínica e nunca sugere diagnóstico, conduta, exame ou passo omitido.
+ */
+
+export type InteractionMode = "text" | "voice_text";
+export type VoicePreference = "female" | "male";
+export type TrainerProfile = "gentle" | "assertive" | "fast_paced" | "permissive";
+
+export const interactionModes: {
+  id: InteractionMode;
+  label: string;
+  hint: string;
+}[] = [
+  { id: "text", label: "Texto", hint: "Respostas apenas escritas" },
+  { id: "voice_text", label: "Voz + texto", hint: "Fala e transcrição juntas" },
+];
+
+export const voicePreferences: { id: VoicePreference; label: string }[] = [
+  { id: "female", label: "Feminina" },
+  { id: "male", label: "Masculina" },
+];
+
+export const trainerProfiles: {
+  id: TrainerProfile;
+  label: string;
+  hint: string;
+  description: string;
+}[] = [
+  {
+    id: "gentle",
+    label: "Brando",
+    hint: "Calmo e paciente",
+    description:
+      "Dá tempo razoável para pensar e conduzir o caso, sem aumentar a pressão desnecessariamente.",
+  },
+  {
+    id: "assertive",
+    label: "Incisivo",
+    hint: "Direto e exigente",
+    description: "Comunica mudanças e consequências de forma mais firme. Não oferece dicas clínicas.",
+  },
+  {
+    id: "fast_paced",
+    label: "Acelerado",
+    hint: "Pressão elevada",
+    description:
+      "A evolução clínica e os eventos do ambiente toleram menos demora. Não oferece dicas clínicas.",
+  },
+  {
+    id: "permissive",
+    label: "Permissivo",
+    hint: "Espaço exploratório",
+    description:
+      "Permite mais exploração conversacional antes de escalar a pressão do ambiente. Não oferece dicas clínicas.",
+  },
+];
+
+export function interactionModeLabel(id: InteractionMode): string {
+  return interactionModes.find((m) => m.id === id)?.label ?? "";
+}
+
+export function voicePreferenceLabel(id: VoicePreference): string {
+  return voicePreferences.find((v) => v.id === id)?.label ?? "";
+}
+
+export function trainerProfileLabel(id: TrainerProfile): string {
+  return trainerProfiles.find((p) => p.id === id)?.label ?? "";
+}
+
+/** Resumo pt-BR do Sombra: "Voz feminina · Incisivo" ou "Texto · Incisivo". */
+export function shadowSummary(
+  interactionMode: InteractionMode,
+  voicePreference: VoicePreference,
+  trainerProfile: TrainerProfile,
+): string {
+  const left =
+    interactionMode === "voice_text"
+      ? `Voz ${voicePreferenceLabel(voicePreference).toLowerCase()}`
+      : "Texto";
+  return `${left} · ${trainerProfileLabel(trainerProfile)}`;
+}
+
+/**
+ * Tipos de evento clínico previstos para o Case Engine (Phase 03+).
+ * Nenhum destes eventos pode ser inventado pelo LLM — todos se originam do caso.
+ */
+export type ClinicalEventType =
+  | "physiologic_deterioration"
+  | "improvement_after_treatment"
+  | "new_symptom"
+  | "vital_signs_change"
+  | "lab_result_available"
+  | "imaging_result_available"
+  | "family_information"
+  | "nursing_communication"
+  | "specialist_response"
+  | "complication"
+  | "cardiac_arrest"
+  | "stabilization"
+  | "disposition";
+
+/**
+ * Contrato futuro: um evento clínico gera UMA resposta do Sombra, usada tanto
+ * para o texto na tela quanto para a síntese de voz (evita divergência).
+ */
+export type ClinicalEvent = {
+  type: ClinicalEventType;
+  /** Fato clínico objetivo, definido pelo Case Engine. */
+  fact: string;
+  /** Momento (segundos desde o início) em que o evento se tornou verdadeiro. */
+  atSecond: number;
+};
+
+export type ShadowResponse = {
+  /** Texto único: renderizado na UI e enviado ao TTS na Phase 05. */
+  text: string;
+  eventType?: ClinicalEventType;
+};
