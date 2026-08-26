@@ -317,7 +317,7 @@ export const septicShockCase = defineCase({
   scoring: {
     caseVersion: "1.0.0",
     scoringVersion: "phase-06",
-    domains: ["initial_approach", "investigation", "treatment", "prioritization", "reassessment", "safety", "disposition"],
+    domains: ["initial_approach", "investigations", "treatment", "prioritization", "reassessment", "safety", "disposition"],
     unsafeActions: [
       {
         actionId: "disposition_discharge",

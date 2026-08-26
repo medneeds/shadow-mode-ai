@@ -326,7 +326,7 @@ export const stemiCase = defineCase({
   scoring: {
     caseVersion: "1.0.0",
     scoringVersion: "phase-06",
-    domains: ["initial_approach", "investigation", "treatment", "prioritization", "safety", "disposition"],
+    domains: ["initial_approach", "investigations", "treatment", "prioritization", "safety", "disposition"],
     unsafeActions: [
       {
         actionId: "administer_nitrate",

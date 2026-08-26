@@ -299,7 +299,7 @@ export const aorticDissectionCase = defineCase({
   scoring: {
     caseVersion: "1.0.0",
     scoringVersion: "phase-06",
-    domains: ["diagnostic_reasoning", "investigation", "treatment", "prioritization", "safety", "disposition"],
+    domains: ["diagnostic_reasoning", "investigations", "treatment", "prioritization", "safety", "disposition"],
     unsafeActions: [
       {
         actionId: "administer_anticoagulation",

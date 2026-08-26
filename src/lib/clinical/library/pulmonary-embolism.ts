@@ -292,7 +292,7 @@ export const pulmonaryEmbolismCase = defineCase({
   scoring: {
     caseVersion: "1.0.0",
     scoringVersion: "phase-06",
-    domains: ["diagnostic_reasoning", "investigation", "treatment", "reassessment", "safety", "disposition"],
+    domains: ["diagnostic_reasoning", "investigations", "treatment", "reassessment", "safety", "disposition"],
     unsafeActions: [
       {
         actionId: "disposition_discharge",
