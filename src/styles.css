@@ -59,7 +59,7 @@
   --color-surface-deep: var(--surface-deep);
   --color-hairline: var(--hairline);
 
-  --shadow-elevated: 0 24px 60px -32px oklch(0 0 0 / 0.8);
+  --shadow-elevated: var(--elevated);
   --shadow-halo: 0 0 80px -10px var(--moss-soft);
 }
 
