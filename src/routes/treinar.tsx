@@ -12,6 +12,8 @@ import type { TraineeInputSource } from "@/lib/trainee-input";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { VoicePresence } from "@/components/shadow/VoicePresence";
+import { PresenceControl } from "@/components/shadow/PresenceControl";
+import { SetupChips } from "@/components/shadow/SetupChips";
 import { Button } from "@/components/ui/button";
 import { OptionChip, PageSection } from "@/components/ui/section";
 import { durations, levels, themes, type LevelId } from "@/lib/shadow-content";
