@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as HistoricoRouteImport } from './routes/historico'
 import { Route as ModoSombraRouteImport } from './routes/modo-sombra'
 import { Route as ResultadoRouteImport } from './routes/resultado'
 import { Route as TreinarRouteImport } from './routes/treinar'
@@ -17,6 +18,11 @@ import { Route as TreinarRouteImport } from './routes/treinar'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HistoricoRoute = HistoricoRouteImport.update({
+  id: '/historico',
+  path: '/historico',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ModoSombraRoute = ModoSombraRouteImport.update({
@@ -37,12 +43,14 @@ const TreinarRoute = TreinarRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/historico': typeof HistoricoRoute
   '/modo-sombra': typeof ModoSombraRoute
   '/resultado': typeof ResultadoRoute
   '/treinar': typeof TreinarRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/historico': typeof HistoricoRoute
   '/modo-sombra': typeof ModoSombraRoute
   '/resultado': typeof ResultadoRoute
   '/treinar': typeof TreinarRoute
@@ -50,20 +58,23 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/historico': typeof HistoricoRoute
   '/modo-sombra': typeof ModoSombraRoute
   '/resultado': typeof ResultadoRoute
   '/treinar': typeof TreinarRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/modo-sombra' | '/resultado' | '/treinar'
+  fullPaths: '/' | '/historico' | '/modo-sombra' | '/resultado' | '/treinar'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/modo-sombra' | '/resultado' | '/treinar'
-  id: '__root__' | '/' | '/modo-sombra' | '/resultado' | '/treinar'
+  to: '/' | '/historico' | '/modo-sombra' | '/resultado' | '/treinar'
+  id:
+    '__root__' | '/' | '/historico' | '/modo-sombra' | '/resultado' | '/treinar'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  HistoricoRoute: typeof HistoricoRoute
   ModoSombraRoute: typeof ModoSombraRoute
   ResultadoRoute: typeof ResultadoRoute
   TreinarRoute: typeof TreinarRoute
@@ -76,6 +87,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/historico': {
+      id: '/historico'
+      path: '/historico'
+      fullPath: '/historico'
+      preLoaderRoute: typeof HistoricoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/modo-sombra': {
@@ -104,6 +122,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  HistoricoRoute: HistoricoRoute,
   ModoSombraRoute: ModoSombraRoute,
   ResultadoRoute: ResultadoRoute,
   TreinarRoute: TreinarRoute,
