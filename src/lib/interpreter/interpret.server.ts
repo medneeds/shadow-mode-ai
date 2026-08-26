@@ -70,8 +70,12 @@ function activeStationRules(def: ClinicalCaseDefinition): string {
   Nesse caso actions = [] e clarificationQuestion = pergunta curta pedindo especificação
   (ex.: "Qual medicação?"). Isso é esclarecimento do que o trainee quis dizer, nunca sugestão de conduta.
 - Nunca sugira conduta, diagnóstico, exame ou próximo passo em clarificationQuestion.
+- Use o CONTEXTO ESTRUTURADO (estado observável, ações já feitas, resultados pendentes/disponíveis)
+  para resolver referências e evitar reinterpretar algo já realizado. Ele vale mais que a transcrição.
 - actionId SÓ pode ser um destes identificadores do catálogo do caso atual:
 ${catalog}
+- Vocabulário falado que costuma indicar cada id (pista, não regra):
+${aliasHintsFor(def.actions.map((a) => a.id))}
 - Se a conduta não corresponder a nenhum id, não force: deixe actions vazio e explique em reason.`;
 }
 
