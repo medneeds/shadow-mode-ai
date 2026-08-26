@@ -622,8 +622,9 @@ function RoomButton({
         active && "border-foreground/25 bg-surface-raised/60 text-foreground",
       )}
     >
-
       {children}
+      {text && <span className="text-xs font-medium">{text}</span>}
+
     </button>
   );
 }
