@@ -398,6 +398,7 @@ function TrainingSetup() {
               {showAdjust ? "Ocultar ajustes" : "Mais ajustes"}
             </button>
           </div>
+        </div>
 
         </div>
       </PageSection>
