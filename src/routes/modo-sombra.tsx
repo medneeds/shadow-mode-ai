@@ -503,10 +503,11 @@ function ShadowRoom() {
           </form>
         )}
 
-        <div className="mx-auto flex max-w-md items-center justify-center gap-2">
+        <div className="mx-auto flex max-w-md flex-wrap items-center justify-center gap-2">
           {wantsVoiceInput && !voiceInputBroken && (
             <RoomButton
-              label={capture.active ? "Microfone ativo" : "Microfone"}
+              label={capture.active ? "Microfone ligado — toque para pausar a escuta" : "Ligar microfone"}
+              text={capture.active ? "Ouvindo" : "Ligar microfone"}
               onClick={toggleMic}
               active={capture.active}
               pressed={capture.active}
@@ -519,19 +520,22 @@ function ShadowRoom() {
             </RoomButton>
           )}
 
-          {wantsVoiceOutput && availability?.textToSpeech && (
+          {availability?.textToSpeech && (
             <RoomButton
-              label={audioMuted ? "Ativar voz do Sombra" : "Silenciar voz do Sombra"}
+              label={shadowVoiceOn ? "Desligar a voz do Sombra" : "Ativar a voz do Sombra"}
+              text={shadowVoiceOn ? "Voz ligada" : "Ativar voz"}
               onClick={toggleAudio}
-              pressed={audioMuted}
+              active={shadowVoiceOn}
+              pressed={shadowVoiceOn}
             >
-              {audioMuted ? (
-                <VolumeX aria-hidden className="size-5" />
-              ) : (
+              {shadowVoiceOn ? (
                 <Volume2 aria-hidden className="size-5" />
+              ) : (
+                <VolumeX aria-hidden className="size-5" />
               )}
             </RoomButton>
           )}
+
 
           <RoomButton label={paused ? "Retomar" : "Pausar"} onClick={() => (paused ? resumeSession() : pauseSession())}>
             {paused ? (
