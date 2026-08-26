@@ -18,6 +18,7 @@ import { Route as ResultadoRouteImport } from './routes/resultado'
 import { Route as TreinarRouteImport } from './routes/treinar'
 import { Route as DevMotorClinicoRouteImport } from './routes/dev.motor-clinico'
 import { Route as ApiVoiceSpeakRouteImport } from './routes/api/voice/speak'
+import { Route as ApiVoiceStatusRouteImport } from './routes/api/voice/status'
 import { Route as ApiVoiceTranscribeRouteImport } from './routes/api/voice/transcribe'
 
 const IndexRoute = IndexRouteImport.update({
@@ -65,6 +66,11 @@ const ApiVoiceSpeakRoute = ApiVoiceSpeakRouteImport.update({
   path: '/api/voice/speak',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiVoiceStatusRoute = ApiVoiceStatusRouteImport.update({
+  id: '/api/voice/status',
+  path: '/api/voice/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiVoiceTranscribeRoute = ApiVoiceTranscribeRouteImport.update({
   id: '/api/voice/transcribe',
   path: '/api/voice/transcribe',
@@ -81,6 +87,7 @@ export interface FileRoutesByFullPath {
   '/treinar': typeof TreinarRoute
   '/dev/motor-clinico': typeof DevMotorClinicoRoute
   '/api/voice/speak': typeof ApiVoiceSpeakRoute
+  '/api/voice/status': typeof ApiVoiceStatusRoute
   '/api/voice/transcribe': typeof ApiVoiceTranscribeRoute
 }
 export interface FileRoutesByTo {
@@ -93,6 +100,7 @@ export interface FileRoutesByTo {
   '/treinar': typeof TreinarRoute
   '/dev/motor-clinico': typeof DevMotorClinicoRoute
   '/api/voice/speak': typeof ApiVoiceSpeakRoute
+  '/api/voice/status': typeof ApiVoiceStatusRoute
   '/api/voice/transcribe': typeof ApiVoiceTranscribeRoute
 }
 export interface FileRoutesById {
@@ -106,6 +114,7 @@ export interface FileRoutesById {
   '/treinar': typeof TreinarRoute
   '/dev/motor-clinico': typeof DevMotorClinicoRoute
   '/api/voice/speak': typeof ApiVoiceSpeakRoute
+  '/api/voice/status': typeof ApiVoiceStatusRoute
   '/api/voice/transcribe': typeof ApiVoiceTranscribeRoute
 }
 export interface FileRouteTypes {
@@ -120,6 +129,7 @@ export interface FileRouteTypes {
     | '/treinar'
     | '/dev/motor-clinico'
     | '/api/voice/speak'
+    | '/api/voice/status'
     | '/api/voice/transcribe'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -132,6 +142,7 @@ export interface FileRouteTypes {
     | '/treinar'
     | '/dev/motor-clinico'
     | '/api/voice/speak'
+    | '/api/voice/status'
     | '/api/voice/transcribe'
   id:
     | '__root__'
@@ -144,6 +155,7 @@ export interface FileRouteTypes {
     | '/treinar'
     | '/dev/motor-clinico'
     | '/api/voice/speak'
+    | '/api/voice/status'
     | '/api/voice/transcribe'
   fileRoutesById: FileRoutesById
 }
@@ -157,6 +169,7 @@ export interface RootRouteChildren {
   TreinarRoute: typeof TreinarRoute
   DevMotorClinicoRoute: typeof DevMotorClinicoRoute
   ApiVoiceSpeakRoute: typeof ApiVoiceSpeakRoute
+  ApiVoiceStatusRoute: typeof ApiVoiceStatusRoute
   ApiVoiceTranscribeRoute: typeof ApiVoiceTranscribeRoute
 }
 
@@ -225,6 +238,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiVoiceSpeakRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/voice/status': {
+      id: '/api/voice/status'
+      path: '/api/voice/status'
+      fullPath: '/api/voice/status'
+      preLoaderRoute: typeof ApiVoiceStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/voice/transcribe': {
       id: '/api/voice/transcribe'
       path: '/api/voice/transcribe'
@@ -245,6 +265,7 @@ const rootRouteChildren: RootRouteChildren = {
   TreinarRoute: TreinarRoute,
   DevMotorClinicoRoute: DevMotorClinicoRoute,
   ApiVoiceSpeakRoute: ApiVoiceSpeakRoute,
+  ApiVoiceStatusRoute: ApiVoiceStatusRoute,
   ApiVoiceTranscribeRoute: ApiVoiceTranscribeRoute,
 }
 export const routeTree = rootRouteImport
