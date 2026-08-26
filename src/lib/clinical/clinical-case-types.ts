@@ -12,6 +12,7 @@
 import type { ClinicalEventType } from "@/lib/shadow-trainer";
 import type { LevelId } from "@/lib/shadow-content";
 import type { EvaluationDomain } from "@/lib/evaluation/evaluation-types";
+import type { ClinicalCaseMeta } from "./case-taxonomy";
 
 /* ---------------------------------------------------------------- ações ---- */
 
@@ -235,6 +236,13 @@ export type ExpectedAction = {
   completionStatus: ActionStatus;
   /** Domínio de avaliação (Phase 06). Sem isto, deriva-se da categoria. */
   domain?: EvaluationDomain;
+  /**
+   * Ações clinicamente equivalentes que satisfazem a MESMA ação esperada.
+   * Evita punir uma conduta válida só porque não é a da solução de referência.
+   */
+  equivalentActionIds?: string[];
+  /** Objetivo clínico ao qual a ação pertence (ver `objectives`). */
+  objectiveId?: string;
   /** Por que a ação importa clinicamente — usado no debriefing pós-estação. */
   clinicalRelevance?: string;
   /** Ensino acionável para "Como melhorar" (pós-estação, nunca durante). */
@@ -286,6 +294,8 @@ export type TriggerCondition =
   | { kind: "always" }
   | { kind: "action_missing"; actionId: string }
   | { kind: "action_performed"; actionId: string }
+  | { kind: "all_actions_missing"; actionIds: string[] }
+  | { kind: "any_action_performed"; actionIds: string[] }
   | { kind: "has_tag"; tag: string }
   | { kind: "missing_tag"; tag: string };
 
@@ -300,6 +310,73 @@ export type TimeTrigger = {
   fact: string;
   statePatch?: PatientStatePatch;
   once: boolean;
+  /** Ramo clínico ao qual este gatilho pertence (rastreabilidade/debriefing). */
+  branchId?: string;
+};
+
+/* ------------------------------------------------ objetivos / ramos ------ */
+
+/**
+ * Objetivo clínico: o que precisa ser alcançado, independentemente de QUAL
+ * ação válida o trainee escolheu. Base da robustez da pontuação.
+ */
+export type ClinicalObjective = {
+  id: string;
+  label: string;
+  domain: EvaluationDomain;
+  /** Qualquer uma destas ações satisfaz o objetivo. */
+  satisfiedByAnyOf: string[];
+  critical: boolean;
+  recommendedWindowSeconds?: number;
+};
+
+/** Ramo clínico predefinido (estabilização, deterioração, complicação...). */
+export type CaseBranch = {
+  id: string;
+  label: string;
+  kind: "stabilization" | "deterioration" | "complication" | "alternative";
+  /** Tag que marca o paciente quando o ramo é atingido. */
+  tag: string;
+  description: string;
+};
+
+/** Desfecho predefinido do caso. Nem toda estação termina em cura. */
+export type CaseOutcomeDefinition = {
+  id: string;
+  label: string;
+  kind: CaseOutcome;
+  /** Todas as condições precisam ser verdadeiras ao encerrar a estação. */
+  conditions: TriggerCondition[];
+  description: string;
+};
+
+/* ----------------------------------------------------------- variantes --- */
+
+/**
+ * Variante controlada: NUNCA gera verdade médica nova — apenas ajusta campos
+ * explicitamente autorizados dentro de limites clinicamente válidos.
+ */
+export type ClinicalCaseVariant = {
+  id: string;
+  label: string;
+  /** Quando definido, a variante muda a dificuldade efetiva do caso. */
+  difficulty?: LevelId;
+  patient?: { age?: number; biologicalSex?: "female" | "male"; chiefPresentation?: string };
+  opening?: string;
+  initialVitals?: Partial<VitalSigns>;
+  addTags?: string[];
+  removeTags?: string[];
+  /** Informações extras (comorbidades, fatores de risco, contraindicações). */
+  extraInformation?: PatientInformation[];
+  /** Achados de exame adicionais desta variante. */
+  extraExamFindings?: ExamFinding[];
+  /** Substituição de resultados de investigação por id. */
+  investigationResults?: Record<string, string>;
+  /** Gatilhos adicionais (complicações, evolução alternativa). */
+  extraTimeTriggers?: TimeTrigger[];
+  /** Deslocamento (segundos) aplicado aos gatilhos base — muda o timing. */
+  triggerTimeShiftSeconds?: number;
+  reviewNote?: string;
 };
 
 /* --------------------------------------------------------- definição ----- */
@@ -307,6 +384,8 @@ export type TimeTrigger = {
 export type ClinicalCaseDefinition = {
   id: string;
   title: string;
+  /** Metadados de taxonomia/descoberta e status de revisão clínica. */
+  meta: ClinicalCaseMeta;
   themeId: string;
   level: LevelId;
   setting: string;
@@ -327,6 +406,23 @@ export type ClinicalCaseDefinition = {
   };
   actions: ActionDefinition[];
   expectedActions: ExpectedAction[];
+  /** Objetivos clínicos satisfeitos por conjuntos de ações equivalentes. */
+  objectives?: ClinicalObjective[];
+  /** Ramos clínicos predefinidos do caso. */
+  branches?: CaseBranch[];
+  /** Desfechos possíveis. */
+  outcomes?: CaseOutcomeDefinition[];
+  /** Variantes controladas e clinicamente validadas. */
+  variants?: ClinicalCaseVariant[];
+  /**
+   * Randomização controlada: apenas estes sinais vitais podem variar, e
+   * somente dentro dos valores listados (verdade médica continua autoral).
+   */
+  variableVitals?: Partial<Record<keyof VitalSigns, number[]>>;
+  /** Variante aplicada em runtime (reprodutibilidade). */
+  variantId?: string;
+  /** Semente usada na randomização controlada (reprodutibilidade). */
+  seed?: number;
   examFindings: ExamFinding[];
   investigations: InvestigationDefinition[];
   timeTriggers: TimeTrigger[];
@@ -339,6 +435,8 @@ export type ClinicalCaseDefinition = {
     stabilizedTag: string;
     maxClinicalSeconds: number;
   };
+  /** Especialidades cuja interconsulta é apropriada neste caso. */
+  relevantSpecialties?: string[];
   /** Aviso permanente: ambiente de treinamento, caso fictício. */
   fictional: true;
 };

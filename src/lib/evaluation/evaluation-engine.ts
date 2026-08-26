@@ -107,7 +107,9 @@ function evaluateExpectedAction(
 ): ExpectedActionEvaluation {
   const label = labelOf(def, expected.actionId);
   const domain = domainOf(expected);
-  const entries = runtime.actionLog.filter((a) => a.actionId === expected.actionId);
+  // Equivalência clínica: qualquer ação do grupo satisfaz a mesma expectativa.
+  const acceptedIds = [expected.actionId, ...(expected.equivalentActionIds ?? [])];
+  const entries = runtime.actionLog.filter((a) => acceptedIds.includes(a.actionId));
   const effective = entries.find((a) => statusRank[a.status] > 0);
   const status: ActionStatus = effective?.status ?? (entries.length > 0 ? "not_applicable" : "not_performed");
 

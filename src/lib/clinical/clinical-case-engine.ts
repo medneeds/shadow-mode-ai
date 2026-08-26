@@ -66,6 +66,10 @@ function evaluateCondition(
       return !hasPerformed(runtime, condition.actionId);
     case "action_performed":
       return hasPerformed(runtime, condition.actionId);
+    case "all_actions_missing":
+      return condition.actionIds.every((id) => !hasPerformed(runtime, id));
+    case "any_action_performed":
+      return condition.actionIds.some((id) => hasPerformed(runtime, id));
     case "has_tag":
       return runtime.patient.tags.includes(condition.tag);
     case "missing_tag":
@@ -101,6 +105,12 @@ function deriveOutcome(
   def: ClinicalCaseDefinition,
 ): ClinicalCaseRuntime["outcome"] {
   const { patient } = runtime;
+
+  // Desfechos autorais do caso têm precedência sobre a heurística genérica.
+  for (const outcome of def.outcomes ?? []) {
+    if (outcome.conditions.every((c) => evaluateCondition(c, runtime))) return outcome.kind;
+  }
+
   if (patient.tags.includes("parada cardiorrespiratória")) return "arrested";
   if (patient.tags.includes(def.completion.stabilizedTag)) return "stabilized";
   if (patient.consciousness === "unresponsive" && patient.airway !== "secured") {
