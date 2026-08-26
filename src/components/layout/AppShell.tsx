@@ -41,10 +41,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           </nav>
 
           <Link
-            to="/modo-sombra"
+            to="/treinar"
             className="hidden rounded-md border border-gold/35 px-3 py-2 text-sm text-gold transition-colors hover:bg-gold-soft md:inline-flex"
           >
-            Entrar no Modo Sombra
+            Iniciar treinamento
           </Link>
         </div>
       </header>
