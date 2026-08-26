@@ -85,6 +85,10 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
   const [pendingFacts, setPendingFacts] = useState<string[]>([]);
   const [lastRuntime, setLastRuntime] = useState<ClinicalCaseRuntime | null>(null);
   const runtimeRef = useRef<ClinicalCaseRuntime | null>(null);
+  const [caseDefinition, setCaseDefinition] = useState<ClinicalCaseDefinition>(referenceCase);
+  const [lastCaseDefinition, setLastCaseDefinition] = useState<ClinicalCaseDefinition>(referenceCase);
+  const caseRef = useRef<ClinicalCaseDefinition>(referenceCase);
+  const recentCaseIdsRef = useRef<string[]>([]);
 
   const setConfig = useCallback((next: Partial<TrainingConfig>) => {
     setConfigState((prev) => ({ ...prev, ...next }));
