@@ -101,9 +101,9 @@ function ShadowRoom() {
 
   const speech = useShadowSpeech();
 
-  /* --- disponibilidade: nada de voz é inicializado no modo texto puro --- */
+  /* --- disponibilidade da voz: consultada sempre, para que ATIVAR VOZ exista
+     mesmo quando a estação começou em modo texto. --- */
   useEffect(() => {
-    if (!wantsVoiceInput && !wantsVoiceOutput) return;
     const controller = new AbortController();
     void fetchVoiceAvailability(controller.signal).then((result) => {
       if (controller.signal.aborted) return;
@@ -111,7 +111,8 @@ function ShadowRoom() {
       if (!result.speechToText && wantsVoiceInput) setVoiceNotice(voiceMessages.notConfigured);
     });
     return () => controller.abort();
-  }, [wantsVoiceInput, wantsVoiceOutput]);
+  }, [wantsVoiceInput]);
+
 
   /**
    * Fala o texto CANÔNICO já exibido. speechText é a MESMA resposta, apenas
