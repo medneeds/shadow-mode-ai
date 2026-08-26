@@ -70,12 +70,29 @@ export const interpretSetupTurn = createServerFn({ method: "POST" })
       if (c.shadowOutputMode) patch.shadowOutputMode = c.shadowOutputMode;
       if (c.traineeInputMode) patch.traineeInputMode = c.traineeInputMode;
 
+      // Fala relacional na configuração: o Sombra responde à pessoa.
+      let shadowText = result.clarificationQuestion;
+      if (result.kind === "relational") {
+        const composed = await composeShadowResponse(llm, {
+          facts: [],
+          profile: (patch.trainerProfile ?? data.config.trainerProfile) as TrainingConfig["trainerProfile"],
+          context: data.context,
+          traineeInput: data.rawContent,
+          relational: {
+            tone: result.emotionalTone ?? "neutral",
+            offTrack: result.offTrack,
+            inStation: false,
+          },
+        });
+        shadowText = composed.text;
+      }
+
       return {
         kind: result.kind,
         configPatch: patch,
         startSession: c.startSession,
         metaCommands: result.metaCommands as MetaCommandDto[],
-        shadowText: result.clarificationQuestion,
+        shadowText,
       };
     } catch {
       return empty;
@@ -161,6 +178,27 @@ export const runClinicalTurn = createServerFn({ method: "POST" })
         actions: interpretation.actions.map((a) => ({ actionId: a.actionId })),
         metaCommands: [] as MetaCommandDto[],
         facts,
+        shadowText: composed.text as string | null,
+        fallback: composed.fallback,
+      };
+    }
+
+    // Relacional: responder à pessoa, sem tocar no motor clínico nem na pontuação.
+    if (interpretation.kind === "relational") {
+      const composed = await composeShadowResponse(llm, {
+        facts: [],
+        profile: data.config.trainerProfile,
+        context: data.context,
+        traineeInput: data.rawContent,
+        relational: {
+          tone: interpretation.emotionalTone ?? "neutral",
+          offTrack: interpretation.offTrack,
+          inStation: true,
+        },
+      });
+      return {
+        ...base,
+        kind: "relational" as const,
         shadowText: composed.text as string | null,
         fallback: composed.fallback,
       };

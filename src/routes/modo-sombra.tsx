@@ -6,6 +6,7 @@ import { ArrowUp, Mic, MicOff, Pause, Play, Square, Volume2, VolumeX } from "luc
 import { VoicePresence } from "@/components/shadow/VoicePresence";
 import { PresenceStatus } from "@/components/shadow/PresenceStatus";
 import { PresenceControl } from "@/components/shadow/PresenceControl";
+import { ComposerMic } from "@/components/shadow/ComposerMic";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
@@ -529,6 +530,14 @@ function ShadowRoom() {
               placeholder="Sua conduta…"
               className="max-h-24 flex-1 resize-none bg-transparent py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none disabled:opacity-50"
             />
+            {wantsVoiceInput && !voiceInputBroken && (
+              <ComposerMic
+                active={capture.active}
+                starting={capture.status === "starting"}
+                onToggle={toggleMic}
+                disabled={status !== "active"}
+              />
+            )}
             <button
               type="submit"
               aria-label="Enviar conduta"

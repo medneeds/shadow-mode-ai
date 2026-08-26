@@ -14,6 +14,14 @@ import { AppShell } from "@/components/layout/AppShell";
 import { VoicePresence } from "@/components/shadow/VoicePresence";
 import { PresenceControl } from "@/components/shadow/PresenceControl";
 import { SetupChips } from "@/components/shadow/SetupChips";
+import { ComposerMic } from "@/components/shadow/ComposerMic";
+import { QuickStations, type QuickStation } from "@/components/shadow/QuickStations";
+import { OnboardingFlow } from "@/components/shadow/OnboardingFlow";
+import {
+  loadDoctorProfile,
+  profileDefaults,
+  type DoctorProfile,
+} from "@/lib/profile/doctor-profile";
 import { Button } from "@/components/ui/button";
 import { OptionChip, PageSection } from "@/components/ui/section";
 import { durations, levels, themes, type LevelId } from "@/lib/shadow-content";
@@ -64,6 +72,8 @@ function TrainingSetup() {
   const [showAdjust, setShowAdjust] = useState(false);
   const [voiceNotice, setVoiceNotice] = useState<string | null>(null);
   const [availability, setAvailability] = useState<VoiceAvailability | null>(null);
+  const [onboarding, setOnboarding] = useState<"unknown" | "open" | "done">("unknown");
+  const [showMicHint, setShowMicHint] = useState(true);
   const openedRef = useRef(false);
   const busyRef = useRef(false);
   const turnRef = useRef(0);
@@ -71,6 +81,23 @@ function TrainingSetup() {
   const speech = useShadowSpeech();
   const wantsVoiceInput = traineeCanSpeak(config.traineeInputMode);
   const wantsVoiceOutput = config.shadowOutputMode === "voice_text";
+
+  /** Primeiro acesso: conhecer o médico antes de treinar com ele. */
+  useEffect(() => {
+    const stored = loadDoctorProfile();
+    if (stored) {
+      setConfig(profileDefaults(stored));
+      setOnboarding("done");
+      return;
+    }
+    setOnboarding(setupMessages.length > 0 ? "done" : "open");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const finishOnboarding = (profile: DoctorProfile) => {
+    setConfig(profileDefaults(profile));
+    setOnboarding("done");
+  };
 
   useEffect(() => {
     if (openedRef.current || setupMessages.length > 0) return;
@@ -89,6 +116,13 @@ function TrainingSetup() {
 
   const handleStart = () => {
     speech.stop();
+    startSession();
+    void navigate({ to: "/modo-sombra" });
+  };
+
+  const handleQuickStation = (station: QuickStation) => {
+    speech.stop();
+    setConfig(station.patch);
     startSession();
     void navigate({ to: "/modo-sombra" });
   };
@@ -207,6 +241,16 @@ function TrainingSetup() {
     else void capture.start();
   };
 
+  if (onboarding === "open") {
+    return (
+      <AppShell>
+        <PageSection>
+          <OnboardingFlow onComplete={finishOnboarding} onSkip={() => setOnboarding("done")} />
+        </PageSection>
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell>
       <PageSection>
@@ -293,6 +337,17 @@ function TrainingSetup() {
               placeholder="Escreva ou fale…"
               className="max-h-24 flex-1 resize-none bg-transparent py-2 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none disabled:opacity-50"
             />
+            {canUseVoice && (
+              <ComposerMic
+                active={capture.active}
+                starting={capture.status === "starting"}
+                onToggle={() => {
+                  setShowMicHint(false);
+                  toggleMic();
+                }}
+                disabled={busy}
+              />
+            )}
             <button
               type="submit"
               aria-label="Enviar"
@@ -305,6 +360,14 @@ function TrainingSetup() {
               <ArrowUp aria-hidden className="size-5" />
             </button>
           </form>
+
+          {canUseVoice && showMicHint && !capture.active && (
+            <p className="mt-2 text-[11px] text-muted-foreground/60">
+              Toque no microfone para falar — ou dê dois toques na esfera.
+            </p>
+          )}
+
+          <QuickStations className="mt-8" onPick={handleQuickStation} disabled={busy} />
 
           {/* Configuração é contexto: chips do que já foi dito + atalhos. */}
           <div className="mt-8 flex flex-col items-center gap-4">
