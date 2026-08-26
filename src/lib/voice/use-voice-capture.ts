@@ -177,10 +177,26 @@ export function useVoiceCapture({ onUtterance, onSpeechStart, suspended }: Optio
         if (suspendedRef.current) return;
 
         const now = performance.now();
+
+        // Push-to-talk: enquanto o gesto estiver ativo, tudo é gravado e nada
+        // é fechado por silêncio — o usuário decide o fim ao soltar.
+        if (forcedRef.current) {
+          chunksRef.current.push(new Float32Array(input));
+          return;
+        }
+
         if (rms > SPEECH_THRESHOLD) {
           if (!speakingRef.current) {
             speakingRef.current = true;
             startedAtRef.current = now;
+            // Retomou logo depois de fechar? Era pausa de raciocínio: alarga.
+            const gap = now - lastFinalizeAtRef.current;
+            if (lastFinalizeAtRef.current > 0) {
+              silenceRef.current =
+                gap < RESUME_FAST_MS
+                  ? Math.min(SILENCE_MAX, silenceRef.current + 220)
+                  : Math.max(SILENCE_MIN, silenceRef.current - 60);
+            }
             onSpeechStartRef.current?.();
           }
           lastVoiceAtRef.current = now;
@@ -191,7 +207,7 @@ export function useVoiceCapture({ onUtterance, onSpeechStart, suspended }: Optio
 
         if (speakingRef.current) {
           chunksRef.current.push(new Float32Array(input));
-          if (now - lastVoiceAtRef.current > SILENCE_MS) finalize(ctx.sampleRate);
+          if (now - lastVoiceAtRef.current > silenceRef.current) finalize(ctx.sampleRate);
         }
       };
 
