@@ -270,99 +270,166 @@ export const referenceCase: ClinicalCaseDefinition = {
     {
       actionId: "assess_airway",
       category: "physical_exam",
+      domain: "initial_approach",
       importance: "critical",
       scoreWeight: 10,
       critical: true,
       recommendedWindowSeconds: 90,
       completionStatus: "performed",
+      clinicalRelevance:
+        "Em rebaixamento de consciência, a via aérea é a primeira ameaça à vida e precisa ser avaliada de imediato.",
+      learningPoint:
+        "Abra todo atendimento de coma indiferenciado pela via aérea, verbalizando o achado antes de seguir para B e C.",
+      omission: {
+        description: "A via aérea não foi avaliada na abordagem inicial.",
+      },
     },
     {
       actionId: "assess_breathing",
       category: "physical_exam",
+      domain: "initial_approach",
       importance: "important",
       scoreWeight: 6,
       critical: false,
       recommendedWindowSeconds: 120,
       completionStatus: "performed",
+      clinicalRelevance: "A avaliação da ventilação define necessidade de suporte de oxigênio.",
+      learningPoint: "Mantenha a sequência A-B-C explícita nos primeiros dois minutos.",
     },
     {
       actionId: "assess_circulation",
       category: "physical_exam",
+      domain: "clinical_assessment",
       importance: "important",
       scoreWeight: 6,
       critical: false,
       recommendedWindowSeconds: 120,
       completionStatus: "performed",
+      clinicalRelevance:
+        "Perfusão e pele (sudorese, temperatura) trazem pistas diagnósticas relevantes neste caso.",
+      learningPoint:
+        "Inclua pele e perfusão periférica no exame dirigido: são achados de alto valor no coma metabólico.",
     },
     {
       actionId: "check_capillary_glucose",
       category: "investigation",
+      domain: "investigations",
       importance: "critical",
       scoreWeight: 14,
       critical: true,
       recommendedWindowSeconds: 180,
       completionStatus: "requested",
+      clinicalRelevance:
+        "A glicemia capilar é o exame à beira do leito que muda a conduta imediatamente no coma indiferenciado.",
+      learningPoint:
+        "Nos próximos casos com alteração do nível de consciência, torne a glicemia capilar parte da avaliação inicial, junto com o ABC.",
+      omission: {
+        description: "A glicemia capilar não foi verificada dentro da janela esperada.",
+        consequenceTriggerId: "trg_glucose_omission_180",
+        consequence:
+          "O paciente permaneceu sem identificação da hipoglicemia e evoluiu com a deterioração prevista pelo caso.",
+      },
     },
     {
       actionId: "obtain_iv_access",
       category: "procedure",
+      domain: "safety",
       importance: "important",
       scoreWeight: 8,
       critical: false,
       recommendedWindowSeconds: 240,
       completionStatus: "performed",
+      clinicalRelevance: "O acesso venoso é pré-requisito para o tratamento intravenoso oportuno.",
+      learningPoint: "Garanta acesso venoso antes de precisar dele.",
     },
     {
       actionId: "administer_glucose",
       category: "medication",
+      domain: "treatment",
       importance: "critical",
       scoreWeight: 16,
       critical: true,
       recommendedWindowSeconds: 300,
       prerequisites: ["obtain_iv_access", "check_capillary_glucose"],
       completionStatus: "performed",
+      clinicalRelevance:
+        "A reposição de glicose intravenosa é o tratamento definitivo da hipoglicemia grave.",
+      learningPoint:
+        "Confirmada a hipoglicemia, trate imediatamente e reavalie o nível de consciência logo após a infusão.",
+      omission: {
+        description: "A hipoglicemia não foi tratada dentro da janela esperada.",
+        consequenceTriggerId: "trg_glucose_omission_360",
+        consequence:
+          "O paciente evoluiu com crise convulsiva e queda de saturação, conforme previsto pelo caso.",
+      },
     },
     {
       actionId: "place_monitoring",
       category: "monitoring",
+      domain: "safety",
       importance: "expected",
       scoreWeight: 5,
       critical: false,
+      recommendedWindowSeconds: 180,
       completionStatus: "performed",
+      clinicalRelevance: "Monitorização contínua detecta deterioração antes do exame clínico.",
+      learningPoint: "Instale monitorização na fase inicial, não depois da primeira intercorrência.",
     },
     {
       actionId: "history_family",
       category: "history",
+      domain: "diagnostic_reasoning",
       importance: "important",
       scoreWeight: 7,
       critical: false,
       completionStatus: "performed",
+      clinicalRelevance: "A história com a família delimita o tempo de início e os antecedentes.",
+      learningPoint:
+        "Colha história com quem trouxe o paciente em paralelo à estabilização, não depois dela.",
     },
     {
       actionId: "history_medications",
       category: "history",
+      domain: "diagnostic_reasoning",
       importance: "important",
       scoreWeight: 7,
       critical: false,
       completionStatus: "performed",
+      clinicalRelevance:
+        "Insulina e sulfonilureia com redução da ingesta explicam o quadro deste paciente.",
+      learningPoint: "Pergunte sempre por medicações em uso e mudança recente de ingesta alimentar.",
     },
     {
       actionId: "reassess_patient",
       category: "reassessment",
+      domain: "reassessment",
       importance: "important",
       scoreWeight: 8,
       critical: false,
       completionStatus: "performed",
+      clinicalRelevance:
+        "Tratamento sem reavaliação é conduta incompleta: a resposta define o próximo passo.",
+      learningPoint:
+        "Reavalie objetivamente após cada intervenção — nível de consciência, dados vitais e glicemia de controle.",
+      omission: {
+        description: "O paciente não foi reavaliado de forma estruturada após a intervenção.",
+      },
     },
     {
       actionId: "disposition_observation",
       category: "disposition",
+      domain: "disposition",
       importance: "expected",
       scoreWeight: 5,
       critical: false,
       completionStatus: "performed",
+      clinicalRelevance:
+        "Hipoglicemia por sulfonilureia exige observação prolongada pelo risco de recorrência.",
+      learningPoint:
+        "Defina destino e plano de monitorização glicêmica: o risco de recidiva permanece por horas.",
     },
   ],
+
 
   examFindings: [
     {
@@ -498,6 +565,47 @@ export const referenceCase: ClinicalCaseDefinition = {
       once: true,
     },
   ],
+
+  scoring: {
+    caseVersion: "1.0.0",
+    scoringVersion: "1.0.0",
+    domains: [
+      "initial_approach",
+      "safety",
+      "clinical_assessment",
+      "diagnostic_reasoning",
+      "investigations",
+      "treatment",
+      "reassessment",
+      "disposition",
+    ],
+    lateCreditFactor: 0.5,
+    incompleteCreditFactor: 0.6,
+    unsafeActions: [
+      {
+        actionId: "request_head_ct",
+        description:
+          "Tomografia de crânio priorizada com paciente em hipoglicemia não corrigida: o paciente sai da sala de emergência sem tratamento da causa reversível.",
+        domain: "prioritization",
+        penaltyPoints: 6,
+        onlyWithTag: "hipoglicemia",
+      },
+    ],
+    expectedManagement: [
+      "Avaliação primária A-B-C com verbalização dos achados nos primeiros dois minutos.",
+      "Monitorização contínua e dois acessos venosos periféricos.",
+      "Glicemia capilar à beira do leito como parte da avaliação inicial do coma.",
+      "Reposição de glicose intravenosa imediatamente após a confirmação da hipoglicemia.",
+      "Reavaliação neurológica e glicemia de controle após a intervenção.",
+      "História com a família e revisão de medicações (insulina e sulfonilureia, ingesta reduzida).",
+      "Destino com observação prolongada e controle glicêmico seriado pelo risco de recorrência.",
+    ],
+    hypotheses: {
+      essential: ["Hipoglicemia"],
+      acceptable: ["Distúrbio metabólico", "Intoxicação exógena", "Estado pós-ictal"],
+      dangerous: ["Acidente vascular cerebral", "Sepse com encefalopatia"],
+    },
+  },
 
   completion: {
     resolutionActionIds: ["administer_glucose", "reassess_patient", "disposition_observation"],

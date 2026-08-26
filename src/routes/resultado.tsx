@@ -1,45 +1,59 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { useEffect, useMemo, useState } from "react";
+import { Volume2 } from "lucide-react";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { MeterRow, PageSection, SectionHeading } from "@/components/ui/section";
-import { mockCompetencies } from "@/lib/shadow-content";
+import { referenceCase } from "@/lib/clinical/reference-cases";
 import { useTrainingSession } from "@/lib/session-store";
+import { buildCompletedResult } from "@/lib/evaluation/completed-result";
+import { deterministicDebriefing } from "@/lib/evaluation/debrief-fallback";
+import { generateDebriefing } from "@/lib/evaluation/debrief.functions";
+import type { CompletedTrainingResult, Debriefing } from "@/lib/evaluation/evaluation-types";
 import { shadowSummary, traineeSummary } from "@/lib/shadow-trainer";
-import { durationLabel, levelLabel, mockCase, mockScore, themeLabel } from "@/lib/training-session";
+import { useShadowSpeech } from "@/lib/voice/use-shadow-speech";
+import { durationLabel, levelLabel, themeLabel } from "@/lib/training-session";
+import { pageTitle } from "@/lib/brand";
 
 export const Route = createFileRoute("/resultado")({
   head: () => ({
     meta: [
-      { title: "Devolutiva da estação — Modo Sombra | By Medneeds" },
+      { title: pageTitle("Devolutiva da estação") },
       {
         name: "description",
         content:
-          "Devolutiva estruturada da estação: acertos, omissões, pontos críticos e conduta esperada.",
+          "Devolutiva estruturada da estação: nota determinística, acertos, omissões, pontos críticos e conduta esperada.",
       },
-      { property: "og:title", content: "Devolutiva da estação — Modo Sombra | By Medneeds" },
+      { property: "og:title", content: pageTitle("Devolutiva da estação") },
       {
         property: "og:description",
-        content: "Entenda onde melhorar depois de conduzir o caso clínico.",
+        content: "Entenda exatamente o que você fez, o que deixou passar e onde melhorar.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: ResultPage,
 });
 
-const timeline = [
-  { time: "00:12", text: "Verificou responsividade e chamou ajuda" },
-  { time: "01:04", text: "Iniciou avaliação de vias aéreas" },
-  { time: "03:20", text: "Solicitou glicemia capilar" },
-  { time: "06:45", text: "Pediu tomografia de crânio" },
-  { time: "11:30", text: "Definiu destino: unidade de terapia intensiva" },
-];
-
 function ResultPage() {
-  const { session, lastCompleted } = useTrainingSession();
+  const { session, lastCompleted, lastRuntime } = useTrainingSession();
   const completed = session?.completed ? session : lastCompleted;
 
-  if (!completed) {
+  const result = useMemo<CompletedTrainingResult | null>(() => {
+    if (!completed || !completed.completed || !lastRuntime) return null;
+    return buildCompletedResult(referenceCase, lastRuntime, completed);
+  }, [completed, lastRuntime]);
+
+  if (!result || !completed) {
     return (
       <AppShell>
         <PageSection>
@@ -50,7 +64,7 @@ function ResultPage() {
           />
           <div className="mt-8">
             <Button asChild size="lg">
-              <Link to="/treinar">Configurar estação</Link>
+              <Link to="/treinar">Treinar</Link>
             </Button>
           </div>
         </PageSection>
@@ -58,20 +72,64 @@ function ResultPage() {
     );
   }
 
-  const { config } = completed;
+  return <ResultView result={result} />;
+}
+
+function ResultView({ result }: { result: CompletedTrainingResult }) {
+  const { evaluation, configuration: config } = result;
+  const requestDebrief = useServerFn(generateDebriefing);
+  const speech = useShadowSpeech();
+
+  // A avaliação determinística é a fonte da verdade; o texto começa determinístico.
+  const [debriefing, setDebriefing] = useState<Debriefing>(() => deterministicDebriefing(evaluation));
+
+  useEffect(() => {
+    let active = true;
+    void requestDebrief({
+      data: {
+        trainerProfile: config.trainerProfile,
+        evaluation: {
+          overallScore: evaluation.overallScore,
+          bandLabel: evaluation.bandLabel,
+          headline: evaluation.headline,
+          outcome: evaluation.outcome,
+          categories: evaluation.categories.map((c) => ({
+            label: c.label,
+            score: c.score,
+            maxScore: c.maxScore,
+            percentage: c.percentage,
+          })),
+          strengths: evaluation.strengths,
+          misses: evaluation.misses,
+          criticalIssues: evaluation.criticalIssues,
+          improvements: evaluation.improvements,
+        },
+      },
+    })
+      .then((next) => {
+        if (active && next?.summary) setDebriefing(next);
+      })
+      .catch(() => {
+        /* a devolutiva determinística permanece exibida */
+      });
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [result.sessionId]);
+
+  useEffect(() => () => speech.stop(), [speech]);
+
+  const voiceAvailable = config.shadowOutputMode === "voice_text";
 
   return (
     <AppShell>
-      <PageSection className="pb-4">
-        <SectionHeading
-          eyebrow="Estação concluída"
-          title={mockCase.title}
-          description="Devolutiva ilustrativa nesta fase. A avaliação clínica real será implementada nas próximas etapas."
-        />
-        <p className="mt-4 font-display text-sm text-muted-foreground">
+      <PageSection className="pb-2">
+        <p className="eyebrow">Estação concluída</p>
+        <h1 className="mt-3 text-2xl sm:text-3xl">{result.caseTitle}</h1>
+        <p className="mt-3 font-display text-sm text-muted-foreground">
           {themeLabel(config.themeId)} · {levelLabel(config.levelId)} ·{" "}
-          {durationLabel(config.durationId)}
-          {" · "}
+          {durationLabel(config.durationId)} ·{" "}
           {shadowSummary(config.shadowOutputMode, config.voicePreference, config.trainerProfile)}
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
@@ -80,78 +138,152 @@ function ResultPage() {
         </p>
       </PageSection>
 
-      <PageSection className="py-0">
-        <div className="panel flex flex-col gap-8 p-6 sm:flex-row sm:items-center sm:gap-12">
-          <div>
+      {/* --- nota: tipografia, sem gamificação --- */}
+      <PageSection className="py-6">
+        <div className="panel flex flex-col gap-6 p-6 sm:flex-row sm:items-start sm:gap-10">
+          <div className="shrink-0">
             <p className="eyebrow">Nota geral</p>
-            <p className="mt-2 font-display text-6xl tabular-nums">
-              {mockScore}
+            <p className="mt-2 font-display text-6xl leading-none tabular-nums">
+              {evaluation.overallScore}
               <span className="text-2xl text-muted-foreground">/100</span>
             </p>
+            <p className="mt-3 text-sm text-foreground">{evaluation.bandLabel}</p>
           </div>
-          <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
-            Estabilização adequada e priorização segura. A maior perda foi no exame físico dirigido
-            e na reavaliação após a expansão volêmica.
-          </p>
+          <div className="min-w-0">
+            <p className="text-sm leading-relaxed text-muted-foreground">{evaluation.headline}</p>
+            <p className="mt-3 break-words text-sm leading-relaxed text-foreground">
+              {debriefing.summary}
+            </p>
+            {voiceAvailable && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="mt-4"
+                onClick={() =>
+                  speech.speaking
+                    ? speech.stop()
+                    : void speech.speak({
+                        turnId: `debrief-${result.sessionId}`,
+                        text: debriefing.summary,
+                        voicePreference: config.voicePreference,
+                        speechRate: config.speechRate,
+                      })
+                }
+              >
+                <Volume2 aria-hidden className="size-4" />
+                {speech.speaking ? "Parar resumo" : "Ouvir resumo"}
+              </Button>
+            )}
+            <p className="mt-4 text-xs text-muted-foreground/70">
+              {evaluation.outcome} · caso {evaluation.caseVersion} · rubrica{" "}
+              {evaluation.scoringVersion}
+            </p>
+          </div>
         </div>
       </PageSection>
 
-      <PageSection>
-        <SectionHeading eyebrow="Competências" title="Como você decidiu" />
-        <div className="mt-6 max-w-2xl divide-y divide-[color:var(--hairline)]">
-          {mockCompetencies.map((c) => (
-            <MeterRow key={c.label} label={c.label} value={c.value} />
+      {/* --- domínios --- */}
+      <PageSection className="py-6">
+        <h2 className="text-lg">Competências avaliadas</h2>
+        <div className="mt-4 max-w-2xl divide-y divide-[color:var(--hairline)]">
+          {evaluation.categories.map((c) => (
+            <MeterRow key={c.category} label={`${c.label} · ${c.score}/${c.maxScore}`} value={c.percentage} />
           ))}
         </div>
       </PageSection>
 
-      <PageSection className="pt-0">
+      {/* --- blocos educacionais --- */}
+      <PageSection className="py-6">
         <div className="grid gap-10 md:grid-cols-2">
           <FeedbackBlock
             title="Você fez bem"
-            items={[
-              "Reconheceu instabilidade hemodinâmica precocemente",
-              "Solicitou lactato e culturas antes do antibiótico",
-              "Comunicou-se de forma clara com a equipe",
-            ]}
+            items={evaluation.strengths}
+            empty="Nenhuma ação de alto valor foi concluída dentro das janelas esperadas."
           />
           <FeedbackBlock
             title="Você deixou passar"
-            items={[
-              "Não realizou exame de pele e perfusão periférica",
-              "Não reavaliou resposta após expansão volêmica",
-              "Não questionou uso prévio de antibióticos",
-            ]}
+            items={evaluation.misses}
+            empty="Nada relevante ficou de fora nesta estação."
           />
           <FeedbackBlock
             title="Pontos críticos"
             tone="critical"
-            items={[
-              "Antibiótico iniciado após 62 minutos da admissão",
-              "Sem monitorização contínua durante a fase inicial",
-            ]}
+            items={evaluation.criticalIssues}
+            empty="Nenhuma falha crítica de segurança ocorreu nesta estação."
           />
-          <FeedbackBlock
-            title="Como melhorar"
-            items={[
-              "Estruture a reavaliação em blocos de 10 minutos",
-              "Verbalize hipóteses e diferenciais em voz alta",
-              "Defina metas objetivas de ressuscitação",
-            ]}
-          />
+          <FeedbackBlock title="Como melhorar" items={debriefing.improvements} />
         </div>
       </PageSection>
 
-      <PageSection className="pt-0">
-        <SectionHeading eyebrow="Conduta esperada" title="Linha do tempo da estação" />
-        <ol className="mt-6 max-w-2xl divide-y divide-[color:var(--hairline)]">
-          {timeline.map((item) => (
-            <li key={item.time} className="flex gap-6 py-4">
-              <span className="font-display text-sm tabular-nums text-gold">{item.time}</span>
-              <span className="text-sm text-muted-foreground">{item.text}</span>
-            </li>
-          ))}
-        </ol>
+      {/* --- divulgação progressiva --- */}
+      <PageSection className="py-6">
+        <Accordion type="multiple" className="max-w-3xl">
+          <AccordionItem value="conduta">
+            <AccordionTrigger>Conduta esperada</AccordionTrigger>
+            <AccordionContent>
+              <ol className="space-y-3">
+                {evaluation.expectedManagement.map((step, index) => (
+                  <li key={step} className="flex gap-3 text-sm leading-relaxed text-muted-foreground">
+                    <span className="font-display text-xs tabular-nums text-gold">{index + 1}</span>
+                    <span>{step}</span>
+                  </li>
+                ))}
+              </ol>
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="timeline">
+            <AccordionTrigger>Linha do tempo da estação</AccordionTrigger>
+            <AccordionContent>
+              {result.timeline.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhum registro nesta estação.</p>
+              ) : (
+                <ol className="divide-y divide-[color:var(--hairline)]">
+                  {result.timeline.map((entry, index) => (
+                    <li key={`${entry.atClinicalSecond}-${index}`} className="flex gap-4 py-3">
+                      <span className="w-12 shrink-0 font-display text-xs tabular-nums text-gold">
+                        {entry.clock}
+                      </span>
+                      <span className="min-w-0 break-words text-sm text-muted-foreground">
+                        {entry.kind === "trainee_action" ? "Você: " : ""}
+                        {entry.text}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="transcricao">
+            <AccordionTrigger>Ver transcrição da estação</AccordionTrigger>
+            <AccordionContent>
+              {result.transcript.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhuma entrada registrada.</p>
+              ) : (
+                <ul className="divide-y divide-[color:var(--hairline)]">
+                  {result.transcript.map((entry, index) => (
+                    <li key={`${entry.clock}-${index}`} className="py-3">
+                      <p className="text-xs text-muted-foreground/70">
+                        {entry.clock} · {entry.source === "voice" ? "voz" : "texto"}
+                      </p>
+                      <p className="mt-1 break-words text-sm text-foreground">
+                        Você disse: {entry.rawContent}
+                      </p>
+                      <p className="mt-1 break-words text-xs text-muted-foreground">
+                        O Sombra entendeu:{" "}
+                        {entry.understoodActions.length > 0
+                          ? entry.understoodActions.join(" · ")
+                          : "nenhuma ação clínica"}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+
         <div className="mt-10 flex flex-wrap gap-3">
           <Button asChild size="lg">
             <Link to="/treinar">Treinar novamente</Link>
@@ -169,22 +301,31 @@ function FeedbackBlock({
   title,
   items,
   tone,
+  empty,
 }: {
   title: string;
   items: string[];
   tone?: "critical";
+  empty?: string;
 }) {
   return (
-    <div>
-      <h3 className={tone === "critical" ? "text-lg text-gold" : "text-lg"}>{title}</h3>
-      <ul className="mt-4 space-y-3">
-        {items.map((item) => (
-          <li key={item} className="flex gap-3 text-sm leading-relaxed text-muted-foreground">
-            <span aria-hidden className="mt-2 size-1 shrink-0 rounded-full bg-moss" />
-            {item}
-          </li>
-        ))}
-      </ul>
+    <div className="min-w-0">
+      <h2 className={tone === "critical" ? "text-lg text-gold" : "text-lg"}>{title}</h2>
+      {items.length === 0 ? (
+        <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{empty}</p>
+      ) : (
+        <ul className="mt-4 space-y-3">
+          {items.map((item) => (
+            <li
+              key={item}
+              className="flex min-w-0 gap-3 text-sm leading-relaxed text-muted-foreground"
+            >
+              <span aria-hidden className="mt-2 size-1 shrink-0 rounded-full bg-moss" />
+              <span className="min-w-0 break-words">{item}</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
