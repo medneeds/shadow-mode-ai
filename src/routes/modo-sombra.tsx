@@ -401,7 +401,9 @@ function ShadowRoom() {
     }
     setAudioMuted(false);
     if (config.shadowOutputMode !== "voice_text") setConfig({ shadowOutputMode: "voice_text" });
+    setVoiceNotice(availability?.textToSpeech === false ? voiceMessages.notConfigured : null);
   };
+
 
 
   if (!session) {
