@@ -48,6 +48,10 @@ export function useVoiceCapture({ onUtterance, onSpeechStart, suspended }: Optio
   const lastVoiceAtRef = useRef(0);
   const startedAtRef = useRef(0);
   const suspendedRef = useRef(Boolean(suspended));
+  // Amplitude de alta frequência vive em ref: a visualização lê por quadro,
+  // o estado do React é atualizado só o suficiente para UI discreta.
+  const amplitudeRef = useRef(0);
+  const lastPublishRef = useRef(0);
   const onUtteranceRef = useRef(onUtterance);
   const onSpeechStartRef = useRef(onSpeechStart);
 
@@ -77,6 +81,7 @@ export function useVoiceCapture({ onUtterance, onSpeechStart, suspended }: Optio
     if (ctx && ctx.state !== "closed") void ctx.close().catch(() => undefined);
     chunksRef.current = [];
     speakingRef.current = false;
+    amplitudeRef.current = 0;
     setAmplitude(0);
   }, []);
 
@@ -144,7 +149,13 @@ export function useVoiceCapture({ onUtterance, onSpeechStart, suspended }: Optio
         let sum = 0;
         for (let i = 0; i < input.length; i += 1) sum += input[i]! * input[i]!;
         const rms = Math.sqrt(sum / input.length);
-        setAmplitude(Math.min(1, rms * 8));
+        const level = Math.min(1, rms * 8);
+        amplitudeRef.current = level;
+        const stamp = performance.now();
+        if (stamp - lastPublishRef.current > 200) {
+          lastPublishRef.current = stamp;
+          setAmplitude(level);
+        }
 
         if (suspendedRef.current) return;
 
@@ -188,6 +199,8 @@ export function useVoiceCapture({ onUtterance, onSpeechStart, suspended }: Optio
   return {
     status,
     amplitude,
+    /** Leitura por quadro, sem re-renderização do React. */
+    getAmplitude: () => amplitudeRef.current,
     message,
     active: status === "listening",
     start,

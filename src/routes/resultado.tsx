@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Volume2 } from "lucide-react";
 
 import { AppShell } from "@/components/layout/AppShell";
+import { VoicePresence } from "@/components/shadow/VoicePresence";
 import { Button } from "@/components/ui/button";
 import {
   Accordion,
@@ -120,10 +121,23 @@ function ResultView({ result }: { result: CompletedTrainingResult }) {
 
   useEffect(() => () => speech.stop(), [speech]);
 
+  // Transição contida: as ondas assentam, há uma calma breve, então a devolutiva.
+  const [settling, setSettling] = useState(true);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSettling(false), 900);
+    return () => window.clearTimeout(timer);
+  }, []);
+
   const voiceAvailable = config.shadowOutputMode === "voice_text";
 
   return (
     <AppShell>
+      {settling && (
+        <div className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center bg-background transition-opacity duration-500">
+          <VoicePresence state="finished" className="scale-75" />
+        </div>
+      )}
+
       <PageSection className="pb-2">
         <p className="eyebrow">Estação concluída</p>
         <h1 className="mt-3 text-2xl sm:text-3xl">{result.caseTitle}</h1>
@@ -140,12 +154,12 @@ function ResultView({ result }: { result: CompletedTrainingResult }) {
 
       {/* --- nota: tipografia, sem gamificação --- */}
       <PageSection className="py-6">
-        <div className="panel flex flex-col gap-6 p-6 sm:flex-row sm:items-start sm:gap-10">
+        <div className="flex flex-col gap-6 border-t border-hairline pt-8 sm:flex-row sm:items-start sm:gap-12">
           <div className="shrink-0">
             <p className="eyebrow">Nota geral</p>
             <p className="mt-2 font-display text-6xl leading-none tabular-nums">
               {evaluation.overallScore}
-              <span className="text-2xl text-muted-foreground">/100</span>
+              <span className="text-xl text-muted-foreground/60">/100</span>
             </p>
             <p className="mt-3 text-sm text-foreground">{evaluation.bandLabel}</p>
           </div>
