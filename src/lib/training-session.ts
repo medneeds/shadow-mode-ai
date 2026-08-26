@@ -72,7 +72,8 @@ export const defaultConfig: TrainingConfig = {
   themeId: "emergencia",
   levelId: "intermediario",
   durationId: "15",
-  interactionMode: "voice_text",
+  shadowOutputMode: "voice_text",
+  traineeInputMode: "hybrid",
   voicePreference: "female",
   trainerProfile: "assertive",
 };
@@ -117,6 +118,7 @@ export function createSession(config: TrainingConfig): TrainingSession {
     remainingSeconds: durationSeconds,
     voiceState: "speaking",
     completed: false,
+    traineeInputs: [],
   };
 }
 
