@@ -34,22 +34,22 @@ export function PresenceControl({
 }: {
   children: ReactNode;
   /** Ação primária: interromper a fala ou confirmar. */
-  onTap?: () => void;
+  onTap?: (() => void) | undefined;
   /** Liga/desliga o microfone. */
-  onDoubleTap?: () => void;
+  onDoubleTap?: (() => void) | undefined;
   /** Início do push-to-talk. */
-  onHoldStart?: () => void;
+  onHoldStart?: (() => void) | undefined;
   /** Fim do push-to-talk. `canceled` = o gesto virou outra coisa. */
-  onHoldEnd?: (canceled: boolean) => void;
+  onHoldEnd?: ((canceled: boolean) => void) | undefined;
   /** Segurou sem falar: pausar/retomar. */
-  onSilentHold?: () => void;
+  onSilentHold?: (() => void) | undefined;
   /** Amplitude real — decide se o hold foi fala ou silêncio. */
-  getAmplitude?: () => number;
+  getAmplitude?: (() => number) | undefined;
   /** Dica curta exibida abaixo da esfera quando ociosa. */
-  hint?: string;
-  label?: string;
-  disabled?: boolean;
-  className?: string;
+  hint?: string | undefined;
+  label?: string | undefined;
+  disabled?: boolean | undefined;
+  className?: string | undefined;
 }) {
   const [gesture, setGesture] = useState<"none" | "holding" | "pause-armed">("none");
 
