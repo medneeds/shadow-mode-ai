@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Mic, MicOff, Pause, Play, Square } from "lucide-react";
+import { ArrowUp, Mic, MicOff, Pause, Play, Square } from "lucide-react";
 
 import { VoicePresence, voiceStateLabels } from "@/components/shadow/VoicePresence";
 import { AppShell } from "@/components/layout/AppShell";
@@ -18,20 +18,22 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useTrainingSession } from "@/lib/session-store";
 import { formatClock, mockCase } from "@/lib/training-session";
+import { traineeCanSpeak, traineeCanType } from "@/lib/shadow-trainer";
+import { pageTitle } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/modo-sombra")({
   head: () => ({
     meta: [
-      { title: "Modo Sombra — estação clínica por voz" },
+      { title: pageTitle("Estação clínica") },
       {
         name: "description",
-        content: "Ambiente imersivo de simulação clínica por voz do Shadow Mode.",
+        content: "Ambiente imersivo de simulação clínica do Modo Sombra | By Medneeds.",
       },
-      { property: "og:title", content: "Modo Sombra — estação clínica por voz" },
+      { property: "og:title", content: pageTitle("Estação clínica") },
       {
         property: "og:description",
-        content: "Conduza o caso falando naturalmente dentro do Modo Sombra.",
+        content: "Conduza o caso por voz ou por texto dentro do Modo Sombra.",
       },
     ],
   }),
@@ -40,10 +42,18 @@ export const Route = createFileRoute("/modo-sombra")({
 
 function ShadowRoom() {
   const navigate = useNavigate();
-  const { session, pauseSession, resumeSession, finishSession, setVoiceState } =
-    useTrainingSession();
+  const {
+    session,
+    pauseSession,
+    resumeSession,
+    finishSession,
+    setVoiceState,
+    submitTraineeInput,
+  } = useTrainingSession();
   const [muted, setMuted] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [lastSent, setLastSent] = useState<string | null>(null);
   const cycleTimers = useRef<number[]>([]);
 
   const status = session?.status;
@@ -71,13 +81,28 @@ function ShadowRoom() {
     [],
   );
 
-  const simulateInteraction = () => {
-    if (status !== "active" || muted) return;
+  const simulateInteraction = ({ force = false }: { force?: boolean } = {}) => {
+    if (status !== "active") return;
+    if (!force && muted) return;
     setVoiceState("processing");
     cycleTimers.current.push(
       window.setTimeout(() => setVoiceState("speaking"), 1400),
       window.setTimeout(() => setVoiceState("listening"), 5200),
     );
+  };
+
+  const canType = session ? traineeCanType(session.config.traineeInputMode) : false;
+  const canSpeak = session ? traineeCanSpeak(session.config.traineeInputMode) : false;
+
+  // Voz e texto convergem para o mesmo TraineeInput e para o mesmo pipeline.
+  const sendDraft = () => {
+    const content = draft.trim();
+    if (!content || status !== "active") return;
+    const input = submitTraineeInput("text", content);
+    if (!input) return;
+    setDraft("");
+    setLastSent(content);
+    simulateInteraction({ force: true });
   };
 
   const handleFinish = () => {
@@ -141,20 +166,66 @@ function ShadowRoom() {
         </p>
       </main>
 
-      <footer className="px-5 pb-[max(2rem,env(safe-area-inset-bottom))] sm:px-8">
-        <div className="mx-auto flex max-w-md items-center justify-center gap-3">
-          <RoomButton
-            label={muted ? "Microfone desativado, ativar microfone" : "Microfone ativo, desativar"}
-            onClick={() => setMuted((m) => !m)}
-            active={!muted}
-            pressed={muted}
-          >
-            {muted ? (
-              <MicOff aria-hidden className="size-5" />
-            ) : (
-              <Mic aria-hidden className="size-5" />
+      <footer className="px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-8">
+        {canType && (
+          <div className="mx-auto mb-5 max-w-md">
+            {lastSent && (
+              <p className="mb-2 truncate text-center text-[11px] text-muted-foreground/70">
+                Registrado: {lastSent}
+              </p>
             )}
-          </RoomButton>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                sendDraft();
+              }}
+              className="flex items-end gap-2 rounded-2xl border border-hairline bg-surface/70 px-3 py-2 focus-within:border-moss/50"
+            >
+              <label className="sr-only" htmlFor="conduta">
+                Digite sua conduta
+              </label>
+              <textarea
+                id="conduta"
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    sendDraft();
+                  }
+                }}
+                rows={1}
+                disabled={status !== "active"}
+                placeholder="Digite sua conduta…"
+                className="max-h-24 flex-1 resize-none bg-transparent py-2 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none disabled:opacity-50"
+              />
+              <button
+                type="submit"
+                aria-label="Enviar conduta"
+                disabled={status !== "active" || !draft.trim()}
+                className="mb-1 flex size-9 shrink-0 items-center justify-center rounded-full border border-moss/50 text-foreground transition-colors hover:bg-surface-raised disabled:opacity-40"
+              >
+                <ArrowUp aria-hidden className="size-4" />
+              </button>
+            </form>
+          </div>
+        )}
+
+        <div className="mx-auto flex max-w-md items-center justify-center gap-3">
+          {canSpeak && (
+            <RoomButton
+              label={muted ? "Microfone desativado, ativar microfone" : "Microfone ativo, desativar"}
+              onClick={() => setMuted((m) => !m)}
+              active={!muted}
+              pressed={muted}
+            >
+              {muted ? (
+                <MicOff aria-hidden className="size-5" />
+              ) : (
+                <Mic aria-hidden className="size-5" />
+              )}
+            </RoomButton>
+          )}
 
           <RoomButton
             label={paused ? "Retomar estação" : "Pausar estação"}
@@ -173,7 +244,11 @@ function ShadowRoom() {
         </div>
 
         <p className="mt-4 text-center text-[11px] text-muted-foreground" aria-live="polite">
-          {muted ? "Microfone desativado" : "Microfone ativo"}
+          {canSpeak
+            ? muted
+              ? "Microfone desativado"
+              : "Microfone ativo"
+            : "Responda pelo campo de texto"}
         </p>
 
         <div className="mt-3 flex flex-col items-center gap-2">
@@ -184,7 +259,7 @@ function ShadowRoom() {
           ) : (
             <button
               type="button"
-              onClick={simulateInteraction}
+              onClick={() => simulateInteraction()}
               disabled={status !== "active" || muted}
               className="rounded-md px-2 py-1 text-[11px] text-muted-foreground/70 underline-offset-4 transition-colors hover:text-muted-foreground hover:underline disabled:opacity-40"
             >
