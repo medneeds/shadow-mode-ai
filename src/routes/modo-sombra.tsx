@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowUp, Mic, MicOff, Pause, Play, Square } from "lucide-react";
 
 import { VoicePresence, voiceStateLabels } from "@/components/shadow/VoicePresence";
@@ -19,6 +20,9 @@ import {
 import { useTrainingSession } from "@/lib/session-store";
 import { formatClock, mockCase } from "@/lib/training-session";
 import { traineeCanSpeak, traineeCanType } from "@/lib/shadow-trainer";
+import { metaCommandLabels, type MetaCommandType } from "@/lib/interpreter/meta-command";
+import { recentContext } from "@/lib/shadow/conversation";
+import { narrateClinicalEvents, runClinicalTurn } from "@/lib/shadow/shadow.functions";
 import { pageTitle } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 
@@ -44,65 +48,167 @@ function ShadowRoom() {
   const navigate = useNavigate();
   const {
     session,
+    config,
+    setConfig,
     pauseSession,
     resumeSession,
     finishSession,
     setVoiceState,
     submitTraineeInput,
+    roomMessages,
+    addRoomMessage,
+    runtime,
+    setRuntime,
+    pendingFacts,
+    consumePendingFacts,
   } = useTrainingSession();
+
+  const runTurn = useServerFn(runClinicalTurn);
+  const narrate = useServerFn(narrateClinicalEvents);
+
   const [muted, setMuted] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [draft, setDraft] = useState("");
-  const [lastSent, setLastSent] = useState<string | null>(null);
-  const cycleTimers = useRef<number[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const openingRef = useRef<string | null>(null);
 
   const status = session?.status;
   const voiceState = session?.voiceState ?? "idle";
+  const clinicalTime = session ? session.durationSeconds - session.remainingSeconds : 0;
 
-  // Sombra abre a estação falando, depois passa a ouvir.
+  // Abertura: o Sombra apresenta o cenário e passa a ouvir.
   useEffect(() => {
-    if (!session || session.status !== "active" || session.voiceState !== "speaking") return;
-    const t = window.setTimeout(() => setVoiceState("listening"), 3800);
+    if (!session || openingRef.current === session.id) return;
+    openingRef.current = session.id;
+    addRoomMessage("shadow", mockCase.opening, 0);
+    const t = window.setTimeout(() => setVoiceState("listening"), 3200);
     return () => window.clearTimeout(t);
-  }, [session?.id, session?.status, session?.voiceState, setVoiceState]);
+  }, [session?.id, session, addRoomMessage, setVoiceState]);
 
   // Conclusão (manual ou automática) leva à devolutiva.
   useEffect(() => {
-    if (status === "finished") {
-      void navigate({ to: "/resultado" });
-    }
+    if (status === "finished") void navigate({ to: "/resultado" });
   }, [status, navigate]);
 
-  useEffect(
-    () => () => {
-      cycleTimers.current.forEach((t) => window.clearTimeout(t));
-      cycleTimers.current = [];
+  const applyMetaCommands = useCallback(
+    (commands: { type: string; value: string | null }[]) => {
+      for (const command of commands) {
+        switch (command.type) {
+          case "pause_session":
+            pauseSession();
+            break;
+          case "resume_session":
+            resumeSession();
+            break;
+          case "finish_session":
+            finishSession();
+            break;
+          case "change_voice":
+            if (command.value === "female" || command.value === "male") {
+              setConfig({ voicePreference: command.value });
+            }
+            break;
+          case "change_trainer_profile":
+            if (
+              command.value === "gentle" ||
+              command.value === "assertive" ||
+              command.value === "fast_paced" ||
+              command.value === "permissive"
+            ) {
+              setConfig({ trainerProfile: command.value });
+            }
+            break;
+          case "change_shadow_output_mode":
+            if (command.value === "text" || command.value === "voice_text") {
+              setConfig({ shadowOutputMode: command.value });
+            }
+            break;
+          case "change_input_mode":
+            if (
+              command.value === "voice" ||
+              command.value === "text" ||
+              command.value === "hybrid"
+            ) {
+              setConfig({ traineeInputMode: command.value });
+            }
+            break;
+          default:
+            break;
+        }
+        const label = metaCommandLabels[command.type as MetaCommandType];
+        if (label) setNotice(label);
+      }
     },
-    [],
+    [pauseSession, resumeSession, finishSession, setConfig],
   );
 
-  const simulateInteraction = ({ force = false }: { force?: boolean } = {}) => {
-    if (status !== "active") return;
-    if (!force && muted) return;
-    setVoiceState("processing");
-    cycleTimers.current.push(
-      window.setTimeout(() => setVoiceState("speaking"), 1400),
-      window.setTimeout(() => setVoiceState("listening"), 5200),
-    );
-  };
+  // Fatos gerados pelo tempo (deterioração, resultados) ganham o tom do perfil.
+  useEffect(() => {
+    if (pendingFacts.length === 0 || status !== "active") return;
+    const facts = consumePendingFacts();
+    if (facts.length === 0) return;
+    let cancelled = false;
+    setVoiceState("speaking");
+    void narrate({
+      data: { facts, trainerProfile: config.trainerProfile, context: recentContext(roomMessages) },
+    })
+      .then((result) => {
+        if (cancelled) return;
+        addRoomMessage("shadow", result.shadowText, clinicalTime);
+      })
+      .catch(() => {
+        if (!cancelled) addRoomMessage("shadow", facts.join(" "), clinicalTime);
+      })
+      .finally(() => {
+        if (!cancelled) setVoiceState("listening");
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingFacts, status]);
 
   const canType = session ? traineeCanType(session.config.traineeInputMode) : false;
   const canSpeak = session ? traineeCanSpeak(session.config.traineeInputMode) : false;
 
   // Voz e texto convergem para o mesmo TraineeInput e para o mesmo pipeline.
-  const sendDraft = () => {
+  const sendDraft = async () => {
     const content = draft.trim();
-    if (!content || status !== "active") return;
+    if (!content || status !== "active" || busy || !runtime) return;
     const input = submitTraineeInput("text", content);
     if (!input) return;
+
     setDraft("");
-    setLastSent(content);
-    simulateInteraction({ force: true });
+    setNotice(null);
+    addRoomMessage("trainee", content, clinicalTime);
+    setBusy(true);
+    setVoiceState("processing");
+
+    try {
+      const result = await runTurn({
+        data: {
+          rawContent: content,
+          source: "text",
+          config,
+          context: recentContext(roomMessages),
+          clinicalTime,
+          runtime,
+        },
+      });
+
+      setRuntime(result.runtime);
+      if (result.metaCommands.length > 0) applyMetaCommands(result.metaCommands);
+      if (result.shadowText) {
+        setVoiceState("speaking");
+        addRoomMessage("shadow", result.shadowText, clinicalTime);
+      }
+    } catch {
+      addRoomMessage("shadow", "Não consegui processar agora. Pode repetir?", clinicalTime);
+    } finally {
+      setBusy(false);
+      setVoiceState("listening");
+    }
   };
 
   const handleFinish = () => {
@@ -130,6 +236,8 @@ function ShadowRoom() {
   }
 
   const paused = status === "paused";
+  const lastShadow = [...roomMessages].reverse().find((m) => m.role === "shadow");
+  const previous = roomMessages.slice(-4, -1);
 
   return (
     <div className="room-backdrop flex min-h-screen flex-col">
@@ -145,14 +253,26 @@ function ShadowRoom() {
       </header>
 
       <main className="flex flex-1 flex-col items-center justify-center px-5 pb-6 text-center">
-        <p className="max-w-lg text-sm leading-relaxed text-muted-foreground">{mockCase.opening}</p>
+        {previous.length > 0 && (
+          <div className="mb-5 flex max-w-md flex-col gap-1">
+            {previous.map((m) => (
+              <p
+                key={m.id}
+                className={cn(
+                  "truncate text-xs",
+                  m.role === "shadow" ? "text-muted-foreground/60" : "text-muted-foreground/40",
+                )}
+              >
+                {m.text}
+              </p>
+            ))}
+          </div>
+        )}
 
-        <div className="mt-6 sm:mt-8">
-          <VoicePresence state={voiceState} />
-        </div>
+        <VoicePresence state={voiceState} />
 
-        <p aria-live="polite" className="mt-5 font-display text-lg">
-          {paused ? "Estação pausada" : voiceStateLabels[voiceState]}
+        <p aria-live="polite" className="mt-5 max-w-lg font-display text-lg leading-relaxed">
+          {paused ? "Estação pausada" : (lastShadow?.text ?? voiceStateLabels[voiceState])}
         </p>
 
         <div className="mt-6 h-px w-40 bg-hairline" aria-hidden />
@@ -169,15 +289,13 @@ function ShadowRoom() {
       <footer className="px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-8">
         {canType && (
           <div className="mx-auto mb-5 max-w-md">
-            {lastSent && (
-              <p className="mb-2 truncate text-center text-[11px] text-muted-foreground/70">
-                Registrado: {lastSent}
-              </p>
+            {notice && (
+              <p className="mb-2 text-center text-[11px] text-muted-foreground/70">{notice}</p>
             )}
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                sendDraft();
+                void sendDraft();
               }}
               className="flex items-end gap-2 rounded-2xl border border-hairline bg-surface/70 px-3 py-2 focus-within:border-moss/50"
             >
@@ -191,18 +309,18 @@ function ShadowRoom() {
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
-                    sendDraft();
+                    void sendDraft();
                   }
                 }}
                 rows={1}
-                disabled={status !== "active"}
+                disabled={status !== "active" || busy}
                 placeholder="Digite sua conduta…"
                 className="max-h-24 flex-1 resize-none bg-transparent py-2 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none disabled:opacity-50"
               />
               <button
                 type="submit"
                 aria-label="Enviar conduta"
-                disabled={status !== "active" || !draft.trim()}
+                disabled={status !== "active" || busy || !draft.trim()}
                 className="mb-1 flex size-9 shrink-0 items-center justify-center rounded-full border border-moss/50 text-foreground transition-colors hover:bg-surface-raised disabled:opacity-40"
               >
                 <ArrowUp aria-hidden className="size-4" />
@@ -244,29 +362,22 @@ function ShadowRoom() {
         </div>
 
         <p className="mt-4 text-center text-[11px] text-muted-foreground" aria-live="polite">
-          {canSpeak
-            ? muted
-              ? "Microfone desativado"
-              : "Microfone ativo"
-            : "Responda pelo campo de texto"}
+          {busy
+            ? "Sombra está processando"
+            : canSpeak
+              ? muted
+                ? "Microfone desativado"
+                : "Microfone ativo"
+              : "Responda pelo campo de texto"}
         </p>
 
-        <div className="mt-3 flex flex-col items-center gap-2">
-          {paused ? (
+        {paused && (
+          <div className="mt-3 flex justify-center">
             <Button variant="ghost" size="sm" onClick={resumeSession}>
               Retomar estação
             </Button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => simulateInteraction()}
-              disabled={status !== "active" || muted}
-              className="rounded-md px-2 py-1 text-[11px] text-muted-foreground/70 underline-offset-4 transition-colors hover:text-muted-foreground hover:underline disabled:opacity-40"
-            >
-              Simular resposta da Sombra (prévia)
-            </button>
-          )}
-        </div>
+          </div>
+        )}
       </footer>
 
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
