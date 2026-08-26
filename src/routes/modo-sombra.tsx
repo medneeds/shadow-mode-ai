@@ -8,6 +8,7 @@ import { PresenceStatus } from "@/components/shadow/PresenceStatus";
 import { PresenceControl } from "@/components/shadow/PresenceControl";
 import { ComposerMic } from "@/components/shadow/ComposerMic";
 import { AmbientTranscript } from "@/components/shadow/AmbientTranscript";
+import { GuidanceActions } from "@/components/shadow/GuidanceActions";
 
 
 import { AppShell } from "@/components/layout/AppShell";
@@ -35,7 +36,9 @@ import { useVoiceCapture } from "@/lib/voice/use-voice-capture";
 import { useShadowSpeech } from "@/lib/voice/use-shadow-speech";
 import { fetchVoiceAvailability, transcribeUtterance } from "@/lib/voice/voice-transport";
 import { voiceMessages, type VoiceAvailability } from "@/lib/voice/voice-types";
-import type { TraineeInputSource } from "@/lib/trainee-input";
+import type { AssistanceProvenance, TraineeInputSource } from "@/lib/trainee-input";
+import { autonomyForLevel, resolveActiveGuidance } from "@/lib/clinical/guidance";
+import type { ActiveGuidance, GuidanceOption } from "@/lib/clinical/guidance-types";
 import { pageTitle } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 
@@ -75,6 +78,7 @@ function ShadowRoom() {
     setRuntime,
     pendingFacts,
     consumePendingFacts,
+    caseDefinition,
   } = useTrainingSession();
 
   const runTurn = useServerFn(runClinicalTurn);
@@ -88,6 +92,7 @@ function ShadowRoom() {
   const [audioMuted, setAudioMuted] = useState(false);
   const [availability, setAvailability] = useState<VoiceAvailability | null>(null);
   const openingRef = useRef<string | null>(null);
+  const guidanceRef = useRef<ActiveGuidance | null>(null);
   const busyRef = useRef(false);
   const turnRef = useRef(0);
 
@@ -100,6 +105,20 @@ function ShadowRoom() {
   const wantsVoiceOutput = config.shadowOutputMode === "voice_text";
   const shadowVoiceOn = wantsVoiceOutput && !audioMuted;
 
+
+  /**
+   * Contexto de assistência de QUALQUER entrada: registra o andaime visível
+   * mesmo quando o trainee ignora as opções e conduz livremente.
+   */
+  const currentProvenance = useCallback((): AssistanceProvenance => {
+    const active = guidanceRef.current;
+    return {
+      autonomyMode: autonomyForLevel(caseDefinition.level),
+      ...(active ? { guidancePointId: active.pointId } : {}),
+      visibleOptionCount: active?.visibleOptionCount ?? 0,
+      usedGuidedOption: false,
+    };
+  }, [caseDefinition.level]);
 
   const speech = useShadowSpeech();
 
@@ -202,13 +221,17 @@ function ShadowRoom() {
    * Protegido contra turnos simultâneos e respostas obsoletas.
    */
   const processTurn = useCallback(
-    async (source: TraineeInputSource, content: string) => {
+    async (
+      source: TraineeInputSource,
+      content: string,
+      assist?: { forcedActionIds?: string[]; provenance?: AssistanceProvenance },
+    ) => {
       const text = content.trim();
       if (!text || busyRef.current) return;
       const current = session;
       if (!current || current.status !== "active" || !runtime) return;
 
-      const input = submitTraineeInput(source, text);
+      const input = submitTraineeInput(source, text, assist?.provenance);
       if (!input) return;
 
       const turnId = turnRef.current + 1;
@@ -231,6 +254,9 @@ function ShadowRoom() {
             context: recentContext(roomMessages),
             clinicalTime,
             runtime,
+            ...(assist?.forcedActionIds?.length
+              ? { forcedActionIds: assist.forcedActionIds }
+              : {}),
           },
         });
 
@@ -277,6 +303,31 @@ function ShadowRoom() {
     ],
   );
 
+  /* --- andaime autoral: 3 (básico), até 5 (intermediário), 0 (avançado) --- */
+  const autonomyMode = autonomyForLevel(caseDefinition.level);
+  const guidance = resolveActiveGuidance(caseDefinition, runtime, autonomyMode);
+  guidanceRef.current = guidance;
+
+  /**
+   * Toque numa opção é clinicamente IDÊNTICO a falar ou digitar a mesma conduta:
+   * a ação segue para o mesmo motor determinístico e para a mesma pontuação.
+   */
+  const selectGuidanceOption = useCallback(
+    (option: GuidanceOption) => {
+      if (!guidance) return;
+      void processTurn("guided_option", option.label, {
+        forcedActionIds: [option.actionId],
+        provenance: {
+          autonomyMode: guidance.autonomyMode,
+          guidancePointId: guidance.pointId,
+          visibleOptionCount: guidance.visibleOptionCount,
+          usedGuidedOption: true,
+        },
+      });
+    },
+    [guidance, processTurn],
+  );
+
   /* --- voz: apenas enunciados FINALIZADOS entram no pipeline --- */
   const handleUtterance = useCallback(
     async (audio: Blob) => {
@@ -295,9 +346,9 @@ function ShadowRoom() {
         return;
       }
       setVoiceNotice(null);
-      await processTurn("voice", result.text);
+      await processTurn("voice", result.text, { provenance: currentProvenance() });
     },
-    [processTurn, setVoiceState],
+    [processTurn, setVoiceState, currentProvenance],
   );
 
   /** Barge-in: a fala do trainee interrompe o áudio do Sombra imediatamente. */
@@ -373,7 +424,7 @@ function ShadowRoom() {
     const content = draft;
     if (!content.trim()) return;
     setDraft("");
-    void processTurn("text", content);
+    void processTurn("text", content, { provenance: currentProvenance() });
   };
 
   const handleFinish = () => {
@@ -506,6 +557,16 @@ function ShadowRoom() {
         >
           {formatClock(session.remainingSeconds)}
         </p>
+
+        {/* Andaime contextual: aparece, resolve o momento e desaparece. */}
+        {guidance && !paused && (
+          <GuidanceActions
+            className="mt-5"
+            options={guidance.options}
+            onSelect={selectGuidanceOption}
+            disabled={status !== "active" || busy}
+          />
+        )}
       </main>
 
 

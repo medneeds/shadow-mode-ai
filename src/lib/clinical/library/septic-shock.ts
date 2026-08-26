@@ -8,6 +8,9 @@ import {
   defineCase,
   expected,
   finding,
+  freeReasoningZone,
+  guidanceOption,
+  guidancePoint,
   info,
   infoOnAction,
   investigation,
@@ -344,6 +347,56 @@ export const septicShockCase = defineCase({
     stabilizedTag: "estabilizado",
     maxClinicalSeconds: 1800,
   },
+  guidance: {
+    points: [
+    guidancePoint("gp-abertura", {
+      educationalPurpose:
+        "Organizar a abordagem inicial de um paciente febril e hipotenso.",
+      guidedOptions: [
+        guidanceOption("check_vital_signs", "high_priority"),
+        guidanceOption("obtain_iv_access", "high_priority"),
+        guidanceOption("history_hpi", "reasonable"),
+      ],
+      adaptiveOptions: [
+        guidanceOption("check_vital_signs", "high_priority"),
+        guidanceOption("obtain_iv_access", "high_priority"),
+        guidanceOption("place_monitoring", "reasonable"),
+        guidanceOption("exam_general", "reasonable"),
+        guidanceOption("history_hpi", "lower_priority"),
+      ],
+    }),
+    guidancePoint("gp-apos-pacote", {
+      educationalPurpose:
+        "Depois do tratamento inicial, reavaliar a resposta e decidir suporte e destino.",
+      conditions: [{ kind: "action_performed", actionId: "administer_antibiotics" }],
+      guidedOptions: [
+        guidanceOption("reassess_vitals", "high_priority"),
+        guidanceOption("request_lactate", "reasonable"),
+        guidanceOption("disposition_icu", "high_priority"),
+      ],
+      adaptiveOptions: [
+        guidanceOption("reassess_vitals", "high_priority"),
+        guidanceOption("request_lactate", "reasonable"),
+        guidanceOption("disposition_icu", "high_priority"),
+        guidanceOption("start_vasopressor", "context_dependent"),
+        guidanceOption("request_specialist", "lower_priority"),
+      ],
+    }),
+    ],
+    freeReasoningZones: [
+    freeReasoningZone("frz-pacote-inicial", {
+      label: "Investigação e tratamento inicial",
+      educationalPurpose:
+        "Identificar o foco, coletar culturas e definir volume e antibiótico sem sugestões.",
+      appliesTo: ["adaptive"],
+      conditions: [
+        { kind: "any_action_performed", actionIds: ["check_vital_signs", "obtain_iv_access"] },
+        { kind: "action_missing", actionId: "administer_antibiotics" },
+      ],
+    }),
+    ],
+  },
+
   variants: [
     {
       id: "var-intermediario-classico",

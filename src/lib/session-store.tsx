@@ -19,6 +19,7 @@ import {
 import {
   createTraineeInput,
   type TraineeAction,
+  type AssistanceProvenance,
   type TraineeInput,
   type TraineeInputSource,
 } from "./trainee-input";
@@ -48,7 +49,11 @@ type SessionContextValue = {
    * Ponto de entrada ÚNICO para respostas do trainee: voz e texto convergem
    * para a mesma estrutura (TraineeInput) e para o mesmo pipeline.
    */
-  submitTraineeInput: (source: TraineeInputSource, rawContent: string) => TraineeInput | null;
+  submitTraineeInput: (
+    source: TraineeInputSource,
+    rawContent: string,
+    provenance?: AssistanceProvenance,
+  ) => TraineeInput | null;
   /** Registra o que o Sombra entendeu de uma entrada (transparência pós-estação). */
   recordInterpretation: (inputId: string, actions: TraineeAction[]) => void;
 
@@ -195,7 +200,11 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
     setSession((prev) => (prev && prev.status !== "finished" ? { ...prev, voiceState } : prev));
   }, []);
 
-  const submitTraineeInput = useCallback((source: TraineeInputSource, rawContent: string) => {
+  const submitTraineeInput = useCallback((
+    source: TraineeInputSource,
+    rawContent: string,
+    provenance?: AssistanceProvenance,
+  ) => {
     const current = sessionRef.current;
     if (!current || current.status !== "active") return null;
     if (!rawContent.trim()) return null;
@@ -204,6 +213,7 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
       source,
       rawContent,
       clinicalTime: current.durationSeconds - current.remainingSeconds,
+      ...(provenance ? { provenance } : {}),
     });
     setSession((prev) =>
       prev && prev.id === current.id

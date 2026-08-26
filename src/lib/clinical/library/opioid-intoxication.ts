@@ -8,6 +8,9 @@ import {
   defineCase,
   expected,
   finding,
+  freeReasoningZone,
+  guidanceOption,
+  guidancePoint,
   info,
   infoOnAction,
   investigation,
@@ -378,6 +381,90 @@ export const opioidIntoxicationCase = defineCase({
     stabilizedTag: "estabilizado",
     maxClinicalSeconds: 900,
   },
+  guidance: {
+    points: [
+    guidancePoint("gp-abertura", {
+      educationalPurpose:
+        "Estruturar a abordagem inicial de um paciente inconsciente com respiração inadequada.",
+      guidedOptions: [
+        guidanceOption("assess_airway", "high_priority"),
+        guidanceOption("assess_breathing", "high_priority"),
+        guidanceOption("history_prehospital", "reasonable"),
+      ],
+      adaptiveOptions: [
+        guidanceOption("assess_airway", "high_priority"),
+        guidanceOption("assess_breathing", "high_priority"),
+        guidanceOption("check_vital_signs", "reasonable"),
+        guidanceOption("place_monitoring", "reasonable"),
+        guidanceOption("history_prehospital", "lower_priority"),
+      ],
+    }),
+    guidancePoint("gp-suporte", {
+      educationalPurpose:
+        "Decidir o suporte ventilatório imediato antes de qualquer terapia específica.",
+      conditions: [{ kind: "any_action_performed", actionIds: ["assess_airway", "assess_breathing", "check_vital_signs"] }],
+      guidedOptions: [
+        guidanceOption("bag_mask_ventilation", "high_priority"),
+        guidanceOption("administer_oxygen", "reasonable"),
+        guidanceOption("obtain_iv_access", "context_dependent"),
+      ],
+      adaptiveOptions: [
+        guidanceOption("bag_mask_ventilation", "high_priority"),
+        guidanceOption("administer_oxygen", "reasonable"),
+        guidanceOption("obtain_iv_access", "context_dependent"),
+        guidanceOption("place_monitoring", "reasonable"),
+        guidanceOption("check_vital_signs", "lower_priority"),
+      ],
+    }),
+    guidancePoint("gp-especifico", {
+      educationalPurpose:
+        "Depois dos achados dirigidos, escolher entre terapia específica, reavaliação e investigação.",
+      conditions: [{ kind: "any_action_performed", actionIds: ["neurologic_assessment", "exam_skin", "history_medications", "history_prehospital"] }],
+      guidedOptions: [
+        guidanceOption("administer_naloxone", "high_priority"),
+        guidanceOption("reassess_patient", "reasonable"),
+        guidanceOption("request_blood_gas", "lower_priority"),
+      ],
+      adaptiveOptions: [
+        guidanceOption("administer_naloxone", "high_priority"),
+        guidanceOption("reassess_patient", "reasonable"),
+        guidanceOption("request_blood_gas", "lower_priority"),
+        guidanceOption("secure_airway", "context_dependent"),
+        guidanceOption("request_toxicology", "lower_priority"),
+      ],
+    }),
+    guidancePoint("gp-destino", {
+      educationalPurpose:
+        "Definir vigilância e destino considerando a duração do efeito do agente.",
+      conditions: [{ kind: "action_performed", actionId: "administer_naloxone" }],
+      guidedOptions: [
+        guidanceOption("reassess_patient", "high_priority"),
+        guidanceOption("disposition_observation", "high_priority"),
+        guidanceOption("disposition_icu", "reasonable"),
+      ],
+      adaptiveOptions: [
+        guidanceOption("reassess_patient", "high_priority"),
+        guidanceOption("disposition_observation", "high_priority"),
+        guidanceOption("disposition_icu", "reasonable"),
+        guidanceOption("request_blood_gas", "lower_priority"),
+        guidanceOption("history_medications", "context_dependent"),
+      ],
+    }),
+    ],
+    freeReasoningZones: [
+    freeReasoningZone("frz-terapia-especifica", {
+      label: "Raciocínio diagnóstico e terapia específica",
+      educationalPurpose:
+        "No intermediário, a hipótese e a terapia específica precisam nascer do trainee.",
+      appliesTo: ["adaptive"],
+      conditions: [
+        { kind: "any_action_performed", actionIds: ["assess_breathing", "bag_mask_ventilation"] },
+        { kind: "action_missing", actionId: "administer_naloxone" },
+      ],
+    }),
+    ],
+  },
+
   variants: [
     {
       id: "var-basico-classico",

@@ -26,11 +26,16 @@ export const setupTurnSchema = z.object({
 
 export const clinicalTurnSchema = z.object({
   rawContent: z.string().min(1).max(2000),
-  source: z.enum(["voice", "text"]),
+  source: z.enum(["voice", "text", "guided_option"]),
   config: configSchema,
   context: z.string().max(4000).optional(),
   clinicalTime: z.number().int().min(0),
   runtime: z.unknown(),
+  /**
+   * Ações já resolvidas no cliente (toque numa opção de andaime autoral).
+   * Entram no MESMO motor determinístico — sem pipeline paralelo de avaliação.
+   */
+  forcedActionIds: z.array(z.string().min(2)).max(3).optional(),
 });
 
 export const narrateSchema = z.object({
