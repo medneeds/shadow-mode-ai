@@ -27,6 +27,8 @@ import { traineeCanSpeak, traineeCanType } from "@/lib/shadow-trainer";
 import { metaCommandLabels, type MetaCommandType } from "@/lib/interpreter/meta-command";
 import { recentContext } from "@/lib/shadow/conversation";
 import { narrateClinicalEvents, runClinicalTurn } from "@/lib/shadow/shadow.functions";
+import { toSpeechText } from "@/lib/shadow/speech-text";
+import { markTurn, reportTurn } from "@/lib/shadow/turn-latency";
 import { useVoiceCapture } from "@/lib/voice/use-voice-capture";
 import { useShadowSpeech } from "@/lib/voice/use-shadow-speech";
 import { fetchVoiceAvailability, transcribeUtterance } from "@/lib/voice/voice-transport";
@@ -215,6 +217,7 @@ function ShadowRoom() {
       setNotice(null);
       addRoomMessage("trainee", text, clinicalTime);
       setVoiceState("processing");
+      markTurn(String(turnId), "transcriptReady");
 
       try {
         const result = await runTurn({
@@ -238,8 +241,9 @@ function ShadowRoom() {
         );
         if (result.metaCommands.length > 0) applyMetaCommands(result.metaCommands);
         if (result.shadowText) {
+          markTurn(String(turnId), "shadowResponseReady");
           addRoomMessage("shadow", result.shadowText, clinicalTime);
-          await speakShadow(turnId, result.shadowText);
+          await speakShadow(turnId, result.shadowText, result.speechText);
         }
       } catch {
         if (turnRef.current === turnId) {
@@ -248,6 +252,7 @@ function ShadowRoom() {
       } finally {
         busyRef.current = false;
         setBusy(false);
+        reportTurn(String(turnId));
         if (turnRef.current === turnId) setVoiceState("listening");
       }
     },
@@ -350,7 +355,7 @@ function ShadowRoom() {
       .then((result) => {
         if (turnRef.current !== turnId) return;
         addRoomMessage("shadow", result.shadowText, clinicalTime);
-        return speakShadow(turnId, result.shadowText);
+        return speakShadow(turnId, result.shadowText, result.speechText);
       })
       .catch(() => {
         if (turnRef.current !== turnId) return;
