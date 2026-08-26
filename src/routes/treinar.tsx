@@ -8,21 +8,24 @@ import { durations, levels, themes, type LevelId } from "@/lib/shadow-content";
 import { useTrainingSession } from "@/lib/session-store";
 import { durationLabel, levelLabel, themeLabel } from "@/lib/training-session";
 import {
-  interactionModes,
+  shadowOutputModes,
   shadowSummary,
+  traineeInputModes,
+  traineeSummary,
   trainerProfiles,
   voicePreferences,
 } from "@/lib/shadow-trainer";
+import { pageTitle } from "@/lib/brand";
 
 export const Route = createFileRoute("/treinar")({
   head: () => ({
     meta: [
-      { title: "Configurar estação — Shadow Mode" },
+      { title: pageTitle("Configurar estação") },
       {
         name: "description",
-        content: "Escolha tema, nível e duração da sua estação clínica no Shadow Mode.",
+        content: "Escolha tema, nível, duração e como você e o Sombra vão se comunicar.",
       },
-      { property: "og:title", content: "Configurar estação — Shadow Mode" },
+      { property: "og:title", content: pageTitle("Configurar estação") },
       {
         property: "og:description",
         content: "Defina tema, nível e duração antes de entrar no Modo Sombra.",
