@@ -23,8 +23,9 @@ import {
   type TraineeInputSource,
 } from "./trainee-input";
 import { advanceClinicalTime, initializeCase } from "./clinical/clinical-case-engine";
-import type { ClinicalCaseRuntime } from "./clinical/clinical-case-types";
+import type { ClinicalCaseDefinition, ClinicalCaseRuntime } from "./clinical/clinical-case-types";
 import { referenceCase } from "./clinical/reference-cases";
+import { selectCase } from "./clinical/selection-engine";
 import { createMessage, type ShadowMessage, type ShadowMessageRole } from "./shadow/conversation";
 import type { ConfigField } from "./shadow/setup-flow";
 
