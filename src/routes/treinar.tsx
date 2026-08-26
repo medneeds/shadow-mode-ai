@@ -123,8 +123,7 @@ function TrainingSetup() {
 
   const handleQuickStation = (station: QuickStation) => {
     speech.stop();
-    setConfig(station.patch);
-    startSession();
+    startSession(station.patch);
     void navigate({ to: "/modo-sombra" });
   };
 
@@ -170,12 +169,17 @@ function TrainingSetup() {
       });
 
       const patchedFields = Object.keys(result.configPatch);
-      if (patchedFields.length > 0) setConfig(result.configPatch);
-
       const provided = Array.from(
         new Set([...providedFields, ...patchedFields]),
       ) as typeof providedFields;
       const question = nextSetupQuestion(provided);
+      const shouldStart = result.startSession && !question;
+
+      if (patchedFields.length > 0 && shouldStart) {
+        startSession(result.configPatch);
+      } else if (patchedFields.length > 0) {
+        setConfig(result.configPatch);
+      }
 
       if (result.shadowText) {
         sayShadow(result.shadowText, result.speechText);
@@ -185,8 +189,7 @@ function TrainingSetup() {
         sayShadow("Pronto. Podemos começar quando você quiser.");
       }
 
-      if (result.startSession && !question) {
-        startSession();
+      if (shouldStart) {
         void navigate({ to: "/modo-sombra" });
       }
     } catch {
@@ -256,150 +259,154 @@ function TrainingSetup() {
     <AppShell>
       <PageSection>
         <div className="grid gap-10 xl:min-h-[70vh] xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] xl:gap-20">
-        <div className="flex flex-col items-center text-center xl:items-start xl:justify-center xl:text-left">
-          {earlier.length > 0 && (
-            <p className="mb-4 line-clamp-1 max-w-md text-xs text-muted-foreground/40">
-              {earlier[earlier.length - 1]?.text}
-            </p>
-          )}
+          <div className="flex flex-col items-center text-center xl:items-start xl:justify-center xl:text-left">
+            {earlier.length > 0 && (
+              <p className="mb-4 line-clamp-1 max-w-md text-xs text-muted-foreground/40">
+                {earlier[earlier.length - 1]?.text}
+              </p>
+            )}
 
-          <PresenceControl
-            onTap={() => (ready ? handleStart() : speech.stop())}
-            onDoubleTap={canUseVoice ? toggleMic : undefined}
-            onHoldStart={canUseVoice ? () => void capture.holdStart() : undefined}
-            onHoldEnd={canUseVoice ? (canceled) => capture.holdEnd(canceled) : undefined}
-            getAmplitude={() => capture.getAmplitude()}
-            hint={
-              ready
-                ? "Toque para entrar no Modo Sombra"
-                : canUseVoice
-                  ? capture.active
-                    ? "Ouvindo — toque duplo desliga o microfone"
-                    : "Toque duplo liga o microfone · segure para falar"
-                  : undefined
-            }
-          >
-            <VoicePresence
-              state={
-                speech.speaking
-                  ? "speaking"
-                  : busy
-                    ? "processing"
-                    : capture.active
-                      ? "listening"
-                      : "idle"
+            <PresenceControl
+              onTap={() => (ready ? handleStart() : speech.stop())}
+              onDoubleTap={canUseVoice ? toggleMic : undefined}
+              onHoldStart={canUseVoice ? () => void capture.holdStart() : undefined}
+              onHoldEnd={canUseVoice ? (canceled) => capture.holdEnd(canceled) : undefined}
+              getAmplitude={() => capture.getAmplitude()}
+              hint={
+                ready
+                  ? "Toque para entrar no Modo Sombra"
+                  : canUseVoice
+                    ? capture.active
+                      ? "Ouvindo — toque duplo desliga o microfone"
+                      : "Toque duplo liga o microfone · segure para falar"
+                    : undefined
               }
-              getAmplitude={() =>
-                speech.speaking
-                  ? speech.getAmplitude()
-                  : capture.active
-                    ? capture.getAmplitude()
-                    : 0
-              }
-            />
-          </PresenceControl>
-
-          <p aria-live="polite" className="mt-2 max-w-lg font-display text-xl leading-relaxed">
-            {lastShadow?.text ?? setupOpeningQuestion}
-          </p>
-
-          {(voiceNotice ?? capture.message) && (
-            <p className="mt-3 text-[11px] text-muted-foreground" aria-live="polite">
-              {voiceNotice ?? capture.message}
-            </p>
-          )}
-
-
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              const content = draft;
-              setDraft("");
-              void send(content);
-            }}
-            className="mt-6 flex w-full max-w-md items-end gap-2 border-b border-hairline pb-1 focus-within:border-moss/50"
-          >
-            <label className="sr-only" htmlFor="config-fala">
-              Descreva a estação
-            </label>
-            <textarea
-              id="config-fala"
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  const content = draft;
-                  setDraft("");
-                  void send(content);
+            >
+              <VoicePresence
+                state={
+                  speech.speaking
+                    ? "speaking"
+                    : busy
+                      ? "processing"
+                      : capture.active
+                        ? "listening"
+                        : "idle"
                 }
-              }}
-              rows={1}
-              disabled={busy}
-              placeholder="Escreva ou fale…"
-              className="max-h-24 flex-1 resize-none bg-transparent py-2 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none disabled:opacity-50"
-            />
-            {canUseVoice && (
-              <ComposerMic
-                active={capture.active}
-                starting={capture.status === "starting"}
-                onToggle={() => {
-                  setShowMicHint(false);
-                  toggleMic();
-                }}
-                disabled={busy}
+                getAmplitude={() =>
+                  speech.speaking
+                    ? speech.getAmplitude()
+                    : capture.active
+                      ? capture.getAmplitude()
+                      : 0
+                }
               />
-            )}
-            <button
-              type="submit"
-              aria-label="Enviar"
-              disabled={busy || !draft.trim()}
-              className={cn(
-                "mb-1 flex size-11 shrink-0 items-center justify-center rounded-full text-muted-foreground/50 transition-all duration-200 active:scale-95",
-                draft.trim() && "text-foreground hover:bg-surface-raised/60",
-              )}
-            >
-              <ArrowUp aria-hidden className="size-5" />
-            </button>
-          </form>
+            </PresenceControl>
 
-          {canUseVoice && showMicHint && !capture.active && (
-            <p className="mt-2 text-[11px] text-muted-foreground/60">
-              Toque no microfone para falar — ou dê dois toques na esfera.
+            <p aria-live="polite" className="mt-2 max-w-lg font-display text-xl leading-relaxed">
+              {lastShadow?.text ?? setupOpeningQuestion}
             </p>
-          )}
-        </div>
 
-        <div className="flex flex-col items-center gap-8 xl:items-start xl:justify-center xl:pt-4">
-          <QuickStations className="mt-0 xl:max-w-lg" onPick={handleQuickStation} disabled={busy} />
-
-          {/* Configuração é contexto: chips do que já foi dito + atalhos. */}
-          <div className="flex flex-col items-center gap-4 xl:items-start">
-            <SetupChips config={config} provided={providedFields} onPick={setConfig} />
-
-            {ready ? (
-              <div className="flex flex-col items-center gap-2">
-                <Button size="sm" onClick={handleStart} disabled={busy}>
-                  Entrar no Modo Sombra
-                </Button>
-                <p className="text-[11px] text-muted-foreground/60">{configSecondaryLine(config)}</p>
-              </div>
-            ) : (
-              <p className="text-[11px] text-muted-foreground/60">{configSummary(config)}</p>
+            {(voiceNotice ?? capture.message) && (
+              <p className="mt-3 text-[11px] text-muted-foreground" aria-live="polite">
+                {voiceNotice ?? capture.message}
+              </p>
             )}
 
-            <button
-              type="button"
-              onClick={() => setShowAdjust((v) => !v)}
-              aria-expanded={showAdjust}
-              className="flex items-center gap-1.5 rounded-md px-1 text-xs text-muted-foreground/60 transition-colors hover:text-foreground"
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const content = draft;
+                setDraft("");
+                void send(content);
+              }}
+              className="mt-6 flex w-full max-w-md items-end gap-2 border-b border-hairline pb-1 focus-within:border-moss/50"
             >
-              <SlidersHorizontal aria-hidden className="size-3.5" />
-              {showAdjust ? "Ocultar ajustes" : "Mais ajustes"}
-            </button>
-          </div>
-        </div>
+              <label className="sr-only" htmlFor="config-fala">
+                Descreva a estação
+              </label>
+              <textarea
+                id="config-fala"
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    const content = draft;
+                    setDraft("");
+                    void send(content);
+                  }
+                }}
+                rows={1}
+                disabled={busy}
+                placeholder="Escreva ou fale…"
+                className="max-h-24 flex-1 resize-none bg-transparent py-2 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none disabled:opacity-50"
+              />
+              {canUseVoice && (
+                <ComposerMic
+                  active={capture.active}
+                  starting={capture.status === "starting"}
+                  onToggle={() => {
+                    setShowMicHint(false);
+                    toggleMic();
+                  }}
+                  disabled={busy}
+                />
+              )}
+              <button
+                type="submit"
+                aria-label="Enviar"
+                disabled={busy || !draft.trim()}
+                className={cn(
+                  "mb-1 flex size-11 shrink-0 items-center justify-center rounded-full text-muted-foreground/50 transition-all duration-200 active:scale-95",
+                  draft.trim() && "text-foreground hover:bg-surface-raised/60",
+                )}
+              >
+                <ArrowUp aria-hidden className="size-5" />
+              </button>
+            </form>
 
+            {canUseVoice && showMicHint && !capture.active && (
+              <p className="mt-2 text-[11px] text-muted-foreground/60">
+                Toque no microfone para falar — ou dê dois toques na esfera.
+              </p>
+            )}
+          </div>
+
+          <div className="flex flex-col items-center gap-8 xl:items-start xl:justify-center xl:pt-4">
+            <QuickStations
+              className="mt-0 xl:max-w-lg"
+              onPick={handleQuickStation}
+              disabled={busy}
+            />
+
+            {/* Configuração é contexto: chips do que já foi dito + atalhos. */}
+            <div className="flex flex-col items-center gap-4 xl:items-start">
+              <SetupChips config={config} provided={providedFields} onPick={setConfig} />
+
+              {ready ? (
+                <div className="flex flex-col items-center gap-2">
+                  <Button size="sm" onClick={handleStart} disabled={busy}>
+                    Entrar no Modo Sombra
+                  </Button>
+                  <p className="text-[11px] text-muted-foreground/60">
+                    {configSecondaryLine(config)}
+                  </p>
+                </div>
+              ) : (
+                <p className="text-[11px] text-muted-foreground/60">{configSummary(config)}</p>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setShowAdjust((v) => !v)}
+                aria-expanded={showAdjust}
+                className="flex items-center gap-1.5 rounded-md px-1 text-xs text-muted-foreground/60 transition-colors hover:text-foreground"
+              >
+                <SlidersHorizontal aria-hidden className="size-3.5" />
+                {showAdjust ? "Ocultar ajustes" : "Mais ajustes"}
+              </button>
+            </div>
+          </div>
         </div>
       </PageSection>
 
