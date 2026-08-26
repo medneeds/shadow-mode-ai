@@ -199,7 +199,7 @@ function ResultView({ result }: { result: CompletedTrainingResult }) {
       {/* --- domínios --- */}
       <PageSection className="py-6">
         <h2 className="text-lg">Competências avaliadas</h2>
-        <div className="mt-4 max-w-2xl divide-y divide-[color:var(--hairline)]">
+        <div className="mt-4 grid lg:grid-cols-2 lg:gap-x-16">
           {evaluation.categories.map((c) => (
             <MeterRow key={c.category} label={`${c.label} · ${c.score}/${c.maxScore}`} value={c.percentage} />
           ))}
@@ -208,7 +208,7 @@ function ResultView({ result }: { result: CompletedTrainingResult }) {
 
       {/* --- blocos educacionais --- */}
       <PageSection className="py-6">
-        <div className="grid gap-10 md:grid-cols-2">
+        <div className="grid gap-10 md:grid-cols-2 xl:gap-x-20">
           <FeedbackBlock
             title="Você fez bem"
             items={evaluation.strengths}
@@ -231,7 +231,7 @@ function ResultView({ result }: { result: CompletedTrainingResult }) {
 
       {/* --- divulgação progressiva --- */}
       <PageSection className="py-6">
-        <Accordion type="multiple" className="max-w-3xl">
+        <Accordion type="multiple" className="max-w-3xl xl:max-w-4xl">
           <AccordionItem value="conduta">
             <AccordionTrigger>Conduta esperada</AccordionTrigger>
             <AccordionContent>

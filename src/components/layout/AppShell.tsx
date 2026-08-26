@@ -18,7 +18,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <main className="flex-1">{children}</main>
 
           <footer className="hidden border-t border-hairline py-8 md:block">
-            <div className="mx-auto flex max-w-6xl flex-col gap-2 px-8 text-xs text-muted-foreground">
+            <div className="mx-auto flex w-full max-w-6xl flex-col gap-2 px-8 text-xs text-muted-foreground lg:px-12 xl:max-w-7xl 2xl:max-w-[88rem]">
               <p>
                 {brand.product} · {brand.supportLine}
               </p>

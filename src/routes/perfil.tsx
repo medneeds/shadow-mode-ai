@@ -85,7 +85,7 @@ function ProfilePage() {
         )}
 
         {profile && (
-          <div className="mt-8 max-w-xl">
+          <div className="mt-8 max-w-xl lg:max-w-3xl">
             <dl className="divide-y divide-[color:var(--hairline)]">
               {rows.map((row) => (
                 <div key={row.label} className="flex items-baseline justify-between gap-6 py-4">
