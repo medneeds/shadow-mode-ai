@@ -571,10 +571,11 @@ function ShadowRoom() {
             </RoomButton>
           )}
 
-          {availability?.textToSpeech && (
+          {/* A voz do Sombra é sempre oferecível — mesmo em estação de texto. */}
+          {availability?.textToSpeech !== false && (
             <RoomButton
               label={shadowVoiceOn ? "Desligar a voz do Sombra" : "Ativar a voz do Sombra"}
-              text={shadowVoiceOn ? "Voz ligada" : "Ativar voz"}
+              text={shadowVoiceOn ? "Voz ligada" : "Ativar voz do Sombra"}
               onClick={toggleAudio}
               active={shadowVoiceOn}
               pressed={shadowVoiceOn}
@@ -586,6 +587,7 @@ function ShadowRoom() {
               )}
             </RoomButton>
           )}
+
 
 
           <RoomButton label={paused ? "Retomar" : "Pausar"} onClick={() => (paused ? resumeSession() : pauseSession())}>
