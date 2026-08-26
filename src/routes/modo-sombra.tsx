@@ -465,6 +465,8 @@ function ShadowRoom() {
 
 
 
+
+
         <p
           className="font-display text-xl tabular-nums text-muted-foreground/70"
           aria-label={`Tempo restante: ${formatClock(session.remainingSeconds)}`}
