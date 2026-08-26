@@ -68,6 +68,10 @@ export const interpretationSchema = z.object({
     z.object({
       actionId: z.string(),
       sourceExcerpt: z.string().nullable(),
+      /** Confiança semântica (0..1). Baixa confiança + alto impacto = esclarecer. */
+      confidence: z.number().min(0).max(1),
+      /** Valor numérico/dose finalmente pretendido, quando dito (ex.: "250 ml"). */
+      value: z.string().nullable(),
     }),
   ),
   clarificationQuestion: z.string().nullable(),
@@ -150,13 +154,15 @@ export function buildInterpretationJsonSchema(allowedActionIds: string[]): Recor
         items: {
           type: "object",
           additionalProperties: false,
-          required: ["actionId", "sourceExcerpt"],
+          required: ["actionId", "sourceExcerpt", "confidence", "value"],
           properties: {
             actionId:
               allowedActionIds.length > 0
                 ? { type: "string", enum: allowedActionIds }
                 : { type: "string" },
             sourceExcerpt: { type: ["string", "null"] },
+            confidence: { type: "number" },
+            value: { type: ["string", "null"] },
           },
         },
       },

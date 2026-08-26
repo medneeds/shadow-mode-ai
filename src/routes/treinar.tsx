@@ -40,6 +40,7 @@ import {
 } from "@/lib/shadow/setup-flow";
 import { recentContext } from "@/lib/shadow/conversation";
 import { interpretSetupTurn } from "@/lib/shadow/shadow.functions";
+import { toSpeechText } from "@/lib/shadow/speech-text";
 import { cn } from "@/lib/utils";
 import { pageTitle } from "@/lib/brand";
 
@@ -129,14 +130,14 @@ function TrainingSetup() {
 
   /** Mesma voz e mesmo ritmo da estação — a configuração já é a experiência. */
   const sayShadow = useCallback(
-    (text: string) => {
+    (text: string, speechText?: string | null) => {
       addSetupMessage("shadow", text);
       if (!wantsVoiceOutput || !availability?.textToSpeech) return;
       const turnId = turnRef.current + 1;
       turnRef.current = turnId;
       void speech.speak({
         turnId: `setup-${turnId}`,
-        text,
+        text: speechText || toSpeechText(text),
         voicePreference: config.voicePreference,
         speechRate: config.speechRate,
       });
@@ -177,7 +178,7 @@ function TrainingSetup() {
       const question = nextSetupQuestion(provided);
 
       if (result.shadowText) {
-        sayShadow(result.shadowText);
+        sayShadow(result.shadowText, result.speechText);
       } else if (question) {
         sayShadow(question);
       } else {

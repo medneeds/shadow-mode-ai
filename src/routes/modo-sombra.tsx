@@ -27,6 +27,8 @@ import { traineeCanSpeak, traineeCanType } from "@/lib/shadow-trainer";
 import { metaCommandLabels, type MetaCommandType } from "@/lib/interpreter/meta-command";
 import { recentContext } from "@/lib/shadow/conversation";
 import { narrateClinicalEvents, runClinicalTurn } from "@/lib/shadow/shadow.functions";
+import { toSpeechText } from "@/lib/shadow/speech-text";
+import { markTurn, reportTurn } from "@/lib/shadow/turn-latency";
 import { useVoiceCapture } from "@/lib/voice/use-voice-capture";
 import { useShadowSpeech } from "@/lib/voice/use-shadow-speech";
 import { fetchVoiceAvailability, transcribeUtterance } from "@/lib/voice/voice-transport";
@@ -111,15 +113,18 @@ function ShadowRoom() {
     return () => controller.abort();
   }, [wantsVoiceInput, wantsVoiceOutput]);
 
-  /** Fala o texto CANÔNICO já exibido — nunca um segundo texto para o TTS. */
+  /**
+   * Fala o texto CANÔNICO já exibido. speechText é a MESMA resposta, apenas
+   * reescrita para soar natural na voz (unidades, siglas) — nunca outro conteúdo.
+   */
   const speakShadow = useCallback(
-    async (turnId: number, text: string) => {
+    async (turnId: number, text: string, speechText?: string | null) => {
       if (!wantsVoiceOutput || audioMuted || !availability?.textToSpeech) return;
       if (turnRef.current !== turnId) return;
       setVoiceState("speaking");
       const ok = await speech.speak({
         turnId: String(turnId),
-        text,
+        text: speechText || toSpeechText(text),
         voicePreference: config.voicePreference,
         speechRate: config.speechRate,
       });
@@ -212,6 +217,7 @@ function ShadowRoom() {
       setNotice(null);
       addRoomMessage("trainee", text, clinicalTime);
       setVoiceState("processing");
+      markTurn(String(turnId), "transcriptReady");
 
       try {
         const result = await runTurn({
@@ -235,8 +241,9 @@ function ShadowRoom() {
         );
         if (result.metaCommands.length > 0) applyMetaCommands(result.metaCommands);
         if (result.shadowText) {
+          markTurn(String(turnId), "shadowResponseReady");
           addRoomMessage("shadow", result.shadowText, clinicalTime);
-          await speakShadow(turnId, result.shadowText);
+          await speakShadow(turnId, result.shadowText, result.speechText);
         }
       } catch {
         if (turnRef.current === turnId) {
@@ -245,6 +252,7 @@ function ShadowRoom() {
       } finally {
         busyRef.current = false;
         setBusy(false);
+        reportTurn(String(turnId));
         if (turnRef.current === turnId) setVoiceState("listening");
       }
     },
@@ -347,7 +355,7 @@ function ShadowRoom() {
       .then((result) => {
         if (turnRef.current !== turnId) return;
         addRoomMessage("shadow", result.shadowText, clinicalTime);
-        return speakShadow(turnId, result.shadowText);
+        return speakShadow(turnId, result.shadowText, result.speechText);
       })
       .catch(() => {
         if (turnRef.current !== turnId) return;
