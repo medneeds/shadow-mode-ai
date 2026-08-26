@@ -31,10 +31,6 @@ const timeline = [
   { time: "11:30", text: "Definiu destino: unidade de terapia intensiva" },
 ];
 
-export function ResultSections() {
-  return null;
-}
-
 function ResultPage() {
   return (
     <AppShell>
