@@ -427,7 +427,7 @@ function ShadowRoom() {
 
   const paused = status === "paused";
   const lastShadow = [...roomMessages].reverse().find((m) => m.role === "shadow");
-  const lastTrainee = [...roomMessages].reverse().find((m) => m.role === "trainee");
+  
 
   const micFailed =
     capture.status === "denied" || capture.status === "error" || capture.status === "unsupported";
