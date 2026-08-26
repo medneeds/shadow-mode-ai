@@ -111,15 +111,20 @@ export function trainerProfileLabel(id: TrainerProfile): string {
 
 /** Resumo pt-BR do Sombra: "Voz feminina · Incisivo" ou "Texto · Incisivo". */
 export function shadowSummary(
-  interactionMode: InteractionMode,
+  shadowOutputMode: ShadowOutputMode,
   voicePreference: VoicePreference,
   trainerProfile: TrainerProfile,
 ): string {
   const left =
-    interactionMode === "voice_text"
+    shadowOutputMode === "voice_text"
       ? `Voz ${voicePreferenceLabel(voicePreference).toLowerCase()}`
       : "Texto";
   return `${left} · ${trainerProfileLabel(trainerProfile)}`;
+}
+
+/** Resumo pt-BR das respostas do trainee: "Voz + texto". */
+export function traineeSummary(traineeInputMode: TraineeInputMode): string {
+  return traineeInputModeLabel(traineeInputMode);
 }
 
 /**
