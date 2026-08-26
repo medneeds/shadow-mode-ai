@@ -127,8 +127,19 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
   }, [pendingFacts]);
 
   const startSession = useCallback(() => {
-    const initial = initializeCase(referenceCase);
-    setSession(createSession(config));
+    const selection = selectCase({
+      themeId: config.themeId,
+      levelId: config.levelId,
+      durationId: config.durationId,
+      excludeCaseIds: recentCaseIdsRef.current,
+    });
+    const def = selection.definition;
+    caseRef.current = def;
+    setCaseDefinition(def);
+    setLastCaseDefinition(def);
+    recentCaseIdsRef.current = [def.id, ...recentCaseIdsRef.current].slice(0, 3);
+    const initial = initializeCase(def);
+    setSession(createSession(config, def.id));
     runtimeRef.current = initial;
     setRuntimeState(initial);
     setRoomMessages([]);
