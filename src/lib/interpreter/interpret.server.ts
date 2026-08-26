@@ -106,8 +106,11 @@ export async function interpretInput(
 
   const userParts = [
     `Configuração atual (pode ser sobrescrita): ${JSON.stringify(request.config)}`,
-    request.visibleState ? `Estado observável: ${request.visibleState}` : null,
-    request.context ? `Contexto recente:\n${request.context}` : null,
+    request.structuredContext ? `Contexto de trabalho:\n${request.structuredContext}` : null,
+    request.visibleState && !request.structuredContext
+      ? `Estado observável: ${request.visibleState}`
+      : null,
+    request.context ? `Conversa recente:\n${request.context}` : null,
     `Origem da entrada: ${request.source}`,
     `<entrada>\n${request.rawContent}\n</entrada>`,
   ].filter(Boolean) as string[];
