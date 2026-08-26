@@ -156,7 +156,7 @@ export function profileSummary(profile: DoctorProfile): string {
 }
 
 /** Linhas do resumo — usadas na revisão do questionário e na tela de perfil. */
-export function profileRows(profile: DoctorProfile): { label: string; value?: string }[] {
+export function profileRows(profile: DoctorProfile): { label: string; value?: string | undefined }[] {
   const expectations = [...profile.expectations];
   if (profile.expectation) expectations.push(profile.expectation);
   return [
