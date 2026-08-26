@@ -14,10 +14,17 @@ import { referenceCase } from "@/lib/clinical/reference-cases";
 import { applyAction, buildAction } from "@/lib/clinical/clinical-case-engine";
 import type { ClinicalCaseRuntime } from "@/lib/clinical/clinical-case-types";
 import { interpretInput } from "@/lib/interpreter/interpret.server";
+import { matchDeterministicActions } from "@/lib/interpreter/speech-normalization";
 import { createLlmProvider } from "@/lib/ai/lovable-gateway.server";
 import type { LlmProvider } from "@/lib/ai/provider";
 import { composeShadowResponse } from "@/lib/shadow/trainer-engine.server";
 import { interpretationUnavailableReply, unintelligibleReply } from "@/lib/shadow/trainer-fallback";
+import {
+  buildInteractionContext,
+  serializeInteractionContext,
+} from "@/lib/shadow/interaction-context";
+import { composeFastPathResponse, isFastPathEligible } from "@/lib/shadow/response-fast-path";
+import { toSpeechText } from "@/lib/shadow/speech-text";
 import {
   clinicalTurnSchema,
   narrateSchema,
@@ -28,12 +35,20 @@ import type { TrainingConfig } from "@/lib/training-session";
 
 type MetaCommandDto = { type: string; value: string | null };
 
+/** Categorias em que uma interpretação incerta não pode virar ação executada. */
+const highImpactCategories = new Set(["medication", "procedure"]);
+const CONFIDENCE_FLOOR = 0.55;
+
 function optionalProvider(): LlmProvider | null {
   try {
     return createLlmProvider();
   } catch {
     return null;
   }
+}
+
+function speech(text: string | null): string | null {
+  return text ? toSpeechText(text) : null;
 }
 
 /** Configuração conversacional: uma chamada de LLM, respostas determinísticas. */
