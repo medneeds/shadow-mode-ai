@@ -109,6 +109,7 @@ export const interpretSetupTurn = createServerFn({ method: "POST" })
         startSession: c.startSession,
         metaCommands: result.metaCommands as MetaCommandDto[],
         shadowText,
+        speechText: speech(shadowText),
       };
     } catch {
       return empty;
