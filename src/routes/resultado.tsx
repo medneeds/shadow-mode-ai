@@ -5,19 +5,19 @@ import { Button } from "@/components/ui/button";
 import { MeterRow, PageSection, SectionHeading } from "@/components/ui/section";
 import { mockCompetencies } from "@/lib/shadow-content";
 import { useTrainingSession } from "@/lib/session-store";
-import { shadowSummary } from "@/lib/shadow-trainer";
+import { shadowSummary, traineeSummary } from "@/lib/shadow-trainer";
 import { durationLabel, levelLabel, mockCase, mockScore, themeLabel } from "@/lib/training-session";
 
 export const Route = createFileRoute("/resultado")({
   head: () => ({
     meta: [
-      { title: "Devolutiva da estação — Shadow Mode" },
+      { title: "Devolutiva da estação — Modo Sombra | By Medneeds" },
       {
         name: "description",
         content:
           "Devolutiva estruturada da estação: acertos, omissões, pontos críticos e conduta esperada.",
       },
-      { property: "og:title", content: "Devolutiva da estação — Shadow Mode" },
+      { property: "og:title", content: "Devolutiva da estação — Modo Sombra | By Medneeds" },
       {
         property: "og:description",
         content: "Entenda onde melhorar depois de conduzir o caso clínico.",
@@ -72,7 +72,7 @@ function ResultPage() {
           {themeLabel(config.themeId)} · {levelLabel(config.levelId)} ·{" "}
           {durationLabel(config.durationId)}
           {" · "}
-          {shadowSummary(config.interactionMode, config.voicePreference, config.trainerProfile)}
+          {shadowSummary(config.shadowOutputMode, config.voicePreference, config.trainerProfile)}
         </p>
       </PageSection>
 

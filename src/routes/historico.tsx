@@ -8,12 +8,12 @@ import { mockHistory } from "@/lib/shadow-content";
 export const Route = createFileRoute("/historico")({
   head: () => ({
     meta: [
-      { title: "Histórico de estações — Shadow Mode" },
+      { title: "Histórico de estações — Modo Sombra | By Medneeds" },
       {
         name: "description",
-        content: "Veja as estações clínicas que você conduziu no Shadow Mode.",
+        content: "Veja as estações clínicas que você conduziu no Modo Sombra.",
       },
-      { property: "og:title", content: "Histórico de estações — Shadow Mode" },
+      { property: "og:title", content: "Histórico de estações — Modo Sombra | By Medneeds" },
       {
         property: "og:description",
         content: "Acompanhe suas simulações anteriores e revise cada devolutiva.",

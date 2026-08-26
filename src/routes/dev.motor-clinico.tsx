@@ -22,13 +22,13 @@ import { runEngineChecks } from "@/lib/clinical/engine-checks";
 export const Route = createFileRoute("/dev/motor-clinico")({
   head: () => ({
     meta: [
-      { title: "Harness do motor clínico — Shadow Mode" },
+      { title: "Harness do motor clínico — Modo Sombra | By Medneeds" },
       {
         name: "description",
         content:
-          "Ferramenta interna para exercitar o motor de casos clínicos determinístico do Shadow Mode.",
+          "Ferramenta interna para exercitar o motor de casos clínicos determinístico do Modo Sombra.",
       },
-      { property: "og:title", content: "Harness do motor clínico — Shadow Mode" },
+      { property: "og:title", content: "Harness do motor clínico — Modo Sombra | By Medneeds" },
       {
         property: "og:description",
         content: "Ambiente de desenvolvimento para validar ações, eventos e transições de estado.",
