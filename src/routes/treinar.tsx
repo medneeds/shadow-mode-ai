@@ -59,7 +59,15 @@ function TrainingSetup() {
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [showAdjust, setShowAdjust] = useState(false);
+  const [voiceNotice, setVoiceNotice] = useState<string | null>(null);
+  const [availability, setAvailability] = useState<VoiceAvailability | null>(null);
   const openedRef = useRef(false);
+  const busyRef = useRef(false);
+  const turnRef = useRef(0);
+
+  const speech = useShadowSpeech();
+  const wantsVoiceInput = traineeCanSpeak(config.traineeInputMode);
+  const wantsVoiceOutput = config.shadowOutputMode === "voice_text";
 
   useEffect(() => {
     if (openedRef.current || setupMessages.length > 0) return;
@@ -67,22 +75,57 @@ function TrainingSetup() {
     addSetupMessage("shadow", setupOpeningQuestion);
   }, [setupMessages.length, addSetupMessage]);
 
+  useEffect(() => {
+    if (!wantsVoiceInput && !wantsVoiceOutput) return;
+    const controller = new AbortController();
+    void fetchVoiceAvailability(controller.signal).then((result) => {
+      if (!controller.signal.aborted) setAvailability(result);
+    });
+    return () => controller.abort();
+  }, [wantsVoiceInput, wantsVoiceOutput]);
+
   const handleStart = () => {
+    speech.stop();
     startSession();
     void navigate({ to: "/modo-sombra" });
   };
 
-  const send = async () => {
-    const content = draft.trim();
-    if (!content || busy) return;
-    setDraft("");
+  /** Mesma voz e mesmo ritmo da estação — a configuração já é a experiência. */
+  const sayShadow = useCallback(
+    (text: string) => {
+      addSetupMessage("shadow", text);
+      if (!wantsVoiceOutput || !availability?.textToSpeech) return;
+      const turnId = turnRef.current + 1;
+      turnRef.current = turnId;
+      void speech.speak({
+        turnId: `setup-${turnId}`,
+        text,
+        voicePreference: config.voicePreference,
+        speechRate: config.speechRate,
+      });
+    },
+    [
+      addSetupMessage,
+      wantsVoiceOutput,
+      availability?.textToSpeech,
+      speech,
+      config.voicePreference,
+      config.speechRate,
+    ],
+  );
+
+  const send = async (rawContent: string, source: TraineeInputSource = "text") => {
+    const content = rawContent.trim();
+    if (!content || busyRef.current) return;
+    speech.stop();
     addSetupMessage("trainee", content);
+    busyRef.current = true;
     setBusy(true);
     try {
       const result = await interpret({
         data: {
           rawContent: content,
-          source: "text",
+          source,
           config,
           context: recentContext(setupMessages),
         },
