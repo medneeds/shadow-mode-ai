@@ -229,6 +229,32 @@ export function useVoiceCapture({ onUtterance, onSpeechStart, suspended }: Optio
   // Nenhum microfone permanece ativo após desmontar o componente.
   useEffect(() => teardown, [teardown]);
 
+  /** Segurar para falar: garante o stream e grava até soltar. */
+  const holdStart = useCallback(async () => {
+    if (!streamRef.current) await start();
+    if (!contextRef.current) return;
+    chunksRef.current = [];
+    speakingRef.current = true;
+    startedAtRef.current = performance.now();
+    forcedRef.current = true;
+    onSpeechStartRef.current?.();
+  }, [start]);
+
+  const holdEnd = useCallback(
+    (canceled?: boolean) => {
+      if (!forcedRef.current) return;
+      forcedRef.current = false;
+      const ctx = contextRef.current;
+      if (canceled || !ctx) {
+        chunksRef.current = [];
+        speakingRef.current = false;
+        return;
+      }
+      finalize(ctx.sampleRate);
+    },
+    [finalize],
+  );
+
   return {
     status,
     amplitude,
@@ -238,6 +264,8 @@ export function useVoiceCapture({ onUtterance, onSpeechStart, suspended }: Optio
     active: status === "listening",
     start,
     stop,
+    holdStart,
+    holdEnd,
     clearMessage: () => setMessage(null),
   };
 }
