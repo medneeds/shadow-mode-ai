@@ -509,7 +509,7 @@ function ShadowRoom() {
       </main>
 
 
-      <footer className="safe-bottom px-5 pt-2 sm:px-8">
+      <footer className="safe-bottom relative z-10 px-5 pt-2 sm:px-8">
         {showComposer && (
           <form
             onSubmit={(e) => {
