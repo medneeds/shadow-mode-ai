@@ -213,16 +213,59 @@ function TrainingSetup() {
             </div>
           )}
 
-          <VoicePresence state={busy ? "processing" : "listening"} />
+          <VoicePresence
+            state={
+              speech.speaking
+                ? "speaking"
+                : busy
+                  ? "processing"
+                  : capture.active
+                    ? "listening"
+                    : "idle"
+            }
+            amplitude={speech.speaking ? speech.amplitude : capture.amplitude}
+          />
 
           <p aria-live="polite" className="mt-6 max-w-lg font-display text-xl leading-relaxed">
             {lastShadow?.text ?? setupOpeningQuestion}
           </p>
 
+          {wantsVoiceInput && !voiceInputBroken && (
+            <button
+              type="button"
+              onClick={() => {
+                setVoiceNotice(null);
+                if (capture.active || capture.status === "starting") capture.stop();
+                else void capture.start();
+              }}
+              aria-label={capture.active ? "Desativar microfone" : "Falar com o Sombra"}
+              aria-pressed={capture.active}
+              className={cn(
+                "mt-6 flex items-center gap-2 rounded-full border border-hairline bg-surface/70 px-4 py-2 text-xs text-muted-foreground transition-colors hover:text-foreground",
+                capture.active && "border-moss/50 text-foreground",
+              )}
+            >
+              {capture.active ? (
+                <Mic aria-hidden className="size-4" />
+              ) : (
+                <MicOff aria-hidden className="size-4" />
+              )}
+              {capture.active ? "Ouvindo…" : "Falar"}
+            </button>
+          )}
+
+          {(voiceNotice ?? capture.message) && (
+            <p className="mt-3 text-[11px] text-muted-foreground" aria-live="polite">
+              {voiceNotice ?? capture.message}
+            </p>
+          )}
+
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              void send();
+              const content = draft;
+              setDraft("");
+              void send(content);
             }}
             className="mt-8 flex w-full max-w-md items-end gap-2 rounded-2xl border border-hairline bg-surface/70 px-3 py-2 focus-within:border-moss/50"
           >
