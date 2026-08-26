@@ -29,11 +29,11 @@ export type TrainerRequest = {
   facts: string[];
   profile: TrainerProfile;
   /** Contexto conversacional mínimo. */
-  context?: string;
+  context?: string | undefined;
   /** Pergunta de esclarecimento (não é dica clínica). */
-  clarification?: string | null;
+  clarification?: string | null | undefined;
   /** Entrada do trainee (conteúdo não confiável). */
-  traineeInput?: string;
+  traineeInput?: string | undefined;
 };
 
 export async function composeShadowResponse(

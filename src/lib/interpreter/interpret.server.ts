@@ -55,9 +55,9 @@ export type InterpretRequest = {
   phase: InterpretPhase;
   config: TrainingConfig;
   /** Contexto mínimo (últimas falas). Nunca histórico ilimitado. */
-  context?: string;
+  context?: string | undefined;
   /** Estado observável resumido — nunca dados ocultos do caso. */
-  visibleState?: string;
+  visibleState?: string | undefined;
 };
 
 export async function interpretInput(
