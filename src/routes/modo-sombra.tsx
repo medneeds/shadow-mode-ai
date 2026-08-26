@@ -375,12 +375,17 @@ function ShadowRoom() {
     void capture.start();
   };
 
+  /** Liga/desliga a voz do Sombra de forma explícita (inclusive vindo do modo texto). */
   const toggleAudio = () => {
-    setAudioMuted((prev) => {
-      if (!prev) speech.stop();
-      return !prev;
-    });
+    if (shadowVoiceOn) {
+      speech.stop();
+      setAudioMuted(true);
+      return;
+    }
+    setAudioMuted(false);
+    if (config.shadowOutputMode !== "voice_text") setConfig({ shadowOutputMode: "voice_text" });
   };
+
 
   if (!session) {
     return (
