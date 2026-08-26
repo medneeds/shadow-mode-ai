@@ -29,15 +29,15 @@ function Home() {
   return (
     <AppShell>
       {/* Hero */}
-      <section className="mx-auto grid w-full max-w-6xl items-center gap-10 px-5 pt-14 pb-8 sm:px-8 sm:pt-20 md:grid-cols-[1.15fr_1fr] md:gap-14">
+      <section className="mx-auto grid w-full max-w-6xl items-center gap-10 px-5 pt-14 pb-8 sm:px-8 sm:pt-20 md:grid-cols-[1.15fr_1fr] md:gap-14 lg:px-12 xl:max-w-7xl xl:gap-20 2xl:max-w-[88rem]">
         <div>
           <p className="eyebrow">Simulação clínica por voz</p>
-          <h1 className="mt-4 text-[2.1rem] leading-[1.1] sm:text-5xl md:text-[3.4rem]">
+          <h1 className="mt-4 text-[2.1rem] leading-[1.1] sm:text-5xl md:text-[3.4rem] xl:text-[4rem]">
             Treine decisões clínicas.
             <br />
             <span className="text-muted-foreground">Não respostas decoradas.</span>
           </h1>
-          <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground">
+          <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground xl:text-lg">
             Entre em cenários clínicos por voz, conduza o atendimento e descubra como você realmente
             decide sob pressão.
           </p>
@@ -52,7 +52,7 @@ function Home() {
         </div>
 
         <div className="flex justify-center md:justify-end">
-          <VoicePresence state="idle" />
+          <VoicePresence state="idle" className="md:scale-110 xl:scale-125" />
         </div>
       </section>
 
@@ -96,15 +96,15 @@ function Home() {
           title="Do fundamento clínico à prova de título"
           description="Cada nível ajusta a complexidade do caso, a pressão da estação e a profundidade esperada da sua conduta."
         />
-        <div className="mt-8 divide-y divide-[color:var(--hairline)]">
+        <div className="mt-8 divide-y divide-[color:var(--hairline)] lg:grid lg:grid-cols-2 lg:gap-x-16 lg:divide-y-0">
           {levels.map((level) => (
             <div
               key={level.id}
-              className="flex flex-col gap-2 py-6 sm:flex-row sm:items-baseline sm:gap-10"
+              className="flex flex-col gap-2 py-6 lg:border-t lg:border-[color:var(--hairline)]"
             >
-              <div className="sm:w-52">
+              <div className="flex flex-wrap items-baseline gap-x-6">
                 <h3 className="text-xl">{level.label}</h3>
-                <p className="mt-1 text-xs text-muted-foreground">{level.audience}</p>
+                <p className="text-xs text-muted-foreground">{level.audience}</p>
               </div>
               <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
                 {level.description}
