@@ -154,13 +154,15 @@ export function buildInterpretationJsonSchema(allowedActionIds: string[]): Recor
         items: {
           type: "object",
           additionalProperties: false,
-          required: ["actionId", "sourceExcerpt"],
+          required: ["actionId", "sourceExcerpt", "confidence", "value"],
           properties: {
             actionId:
               allowedActionIds.length > 0
                 ? { type: "string", enum: allowedActionIds }
                 : { type: "string" },
             sourceExcerpt: { type: ["string", "null"] },
+            confidence: { type: "number" },
+            value: { type: ["string", "null"] },
           },
         },
       },
