@@ -110,14 +110,20 @@ export function VoicePresence({
               ? target.ampFloor * (0.7 + 0.3 * Math.sin(now / 2600))
               : target.ampFloor;
 
-      // Subida rápida (reação verdadeira), descida suave (nunca violento).
-      const k = targetAmp > visualAmp ? 0.22 : 0.09;
+      // Subida quase imediata (a esfera reage à sílaba), descida suave.
+      const k = targetAmp > visualAmp ? 0.45 : 0.11;
       visualAmp += (targetAmp - visualAmp) * k;
-      visualScale += (target.scale - visualScale) * 0.06;
-      visualCore += (target.core - visualCore) * 0.07;
-      visualGlow += (target.glow - visualGlow) * 0.07;
+      // A escala também respira com a voz: o campo avança quando há som real.
+      const liveScale =
+        current === "listening" || current === "speaking"
+          ? target.scale + visualAmp * 0.14
+          : target.scale;
+      visualScale += (liveScale - visualScale) * 0.14;
+      visualCore += (target.core - visualCore) * 0.12;
+      visualGlow += (target.glow - visualGlow) * 0.12;
 
-      phase += dt * target.speed * speedPace;
+      // A fala acelera o próprio deslocamento das ondas.
+      phase += dt * target.speed * speedPace * (1 + visualAmp * 1.1);
 
       for (const [index, layer] of layerRefs.current.entries()) {
         const config = LAYERS[index];
@@ -125,13 +131,15 @@ export function VoicePresence({
         layer.setAttribute("d", wavePath(config, visualScale, visualAmp, phase));
         layer.setAttribute(
           "opacity",
-          (config.opacity * (0.5 + 0.5 * visualCore) * (0.65 + visualAmp * 0.5)).toFixed(3),
+          (config.opacity * (0.5 + 0.5 * visualCore) * (0.55 + visualAmp * 0.75)).toFixed(3),
         );
       }
 
-      coreRef.current?.setAttribute("opacity", visualCore.toFixed(3));
-      coreRef.current?.setAttribute("r", (CORE_R * (0.985 + visualAmp * 0.035)).toFixed(2));
-      glowRef.current?.setAttribute("opacity", (visualGlow * (0.7 + visualAmp * 0.6)).toFixed(3));
+      coreRef.current?.setAttribute("opacity", Math.min(1, visualCore + visualAmp * 0.25).toFixed(3));
+      coreRef.current?.setAttribute("r", (CORE_R * (0.97 + visualAmp * 0.11)).toFixed(2));
+      glowRef.current?.setAttribute("opacity", (visualGlow * (0.6 + visualAmp * 0.9)).toFixed(3));
+      glowRef.current?.setAttribute("r", (66 * (0.96 + visualAmp * 0.16)).toFixed(2));
+
 
       raf = requestAnimationFrame(tick);
     };
