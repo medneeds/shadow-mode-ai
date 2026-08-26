@@ -4,6 +4,14 @@ import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { MeterRow, PageSection, SectionHeading } from "@/components/ui/section";
 import { mockCompetencies } from "@/lib/shadow-content";
+import { useTrainingSession } from "@/lib/session-store";
+import {
+  durationLabel,
+  levelLabel,
+  mockCase,
+  mockScore,
+  themeLabel,
+} from "@/lib/training-session";
 
 export const Route = createFileRoute("/resultado")({
   head: () => ({
@@ -11,7 +19,8 @@ export const Route = createFileRoute("/resultado")({
       { title: "Devolutiva da estação — Shadow Mode" },
       {
         name: "description",
-        content: "Devolutiva estruturada da estação: acertos, omissões, pontos críticos e conduta esperada.",
+        content:
+          "Devolutiva estruturada da estação: acertos, omissões, pontos críticos e conduta esperada.",
       },
       { property: "og:title", content: "Devolutiva da estação — Shadow Mode" },
       {
@@ -32,14 +41,42 @@ const timeline = [
 ];
 
 function ResultPage() {
+  const { session, lastCompleted } = useTrainingSession();
+  const completed = session?.completed ? session : lastCompleted;
+
+  if (!completed) {
+    return (
+      <AppShell>
+        <PageSection>
+          <SectionHeading
+            eyebrow="Devolutiva"
+            title="Nenhuma estação concluída"
+            description="Conduza uma estação no Modo Sombra para receber sua devolutiva."
+          />
+          <div className="mt-8">
+            <Button asChild size="lg">
+              <Link to="/treinar">Configurar estação</Link>
+            </Button>
+          </div>
+        </PageSection>
+      </AppShell>
+    );
+  }
+
+  const { config } = completed;
+
   return (
     <AppShell>
       <PageSection className="pb-4">
         <SectionHeading
-          eyebrow="Devolutiva · exemplo"
-          title="Choque séptico de foco urinário"
-          description="Prévia da linguagem visual da devolutiva. Os valores são ilustrativos nesta fase."
+          eyebrow="Estação concluída"
+          title={mockCase.title}
+          description="Devolutiva ilustrativa nesta fase. A avaliação clínica real será implementada nas próximas etapas."
         />
+        <p className="mt-4 font-display text-sm text-muted-foreground">
+          {themeLabel(config.themeId)} · {levelLabel(config.levelId)} ·{" "}
+          {durationLabel(config.durationId)}
+        </p>
       </PageSection>
 
       <PageSection className="py-0">
@@ -47,7 +84,8 @@ function ResultPage() {
           <div>
             <p className="eyebrow">Nota geral</p>
             <p className="mt-2 font-display text-6xl tabular-nums">
-              78<span className="text-2xl text-muted-foreground">/100</span>
+              {mockScore}
+              <span className="text-2xl text-muted-foreground">/100</span>
             </p>
           </div>
           <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
@@ -114,11 +152,11 @@ function ResultPage() {
           ))}
         </ol>
         <div className="mt-10 flex flex-wrap gap-3">
-          <Button asChild>
+          <Button asChild size="lg">
             <Link to="/treinar">Treinar novamente</Link>
           </Button>
           <Button asChild variant="ghost">
-            <Link to="/historico">Ver histórico</Link>
+            <Link to="/">Início</Link>
           </Button>
         </div>
       </PageSection>
