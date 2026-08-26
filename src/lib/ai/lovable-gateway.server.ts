@@ -78,7 +78,7 @@ export function createLlmProvider(): LlmProvider {
     async generateText(request: LlmTextRequest) {
       const content = await call({
         messages: request.messages,
-        max_tokens: request.maxTokens ?? 220,
+        max_tokens: request.maxTokens ?? 700,
       });
       return content.trim();
     },
