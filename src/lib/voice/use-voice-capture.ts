@@ -65,6 +65,11 @@ export function useVoiceCapture({ onUtterance, onSpeechStart, suspended }: Optio
   const lastPublishRef = useRef(0);
   const onUtteranceRef = useRef(onUtterance);
   const onSpeechStartRef = useRef(onSpeechStart);
+  /** Janela de silêncio adaptada ao ritmo do usuário. */
+  const silenceRef = useRef(SILENCE_MS);
+  const lastFinalizeAtRef = useRef(0);
+  /** Push-to-talk: grava enquanto o gesto estiver ativo, sem VAD. */
+  const forcedRef = useRef(false);
 
   useEffect(() => {
     suspendedRef.current = Boolean(suspended);
