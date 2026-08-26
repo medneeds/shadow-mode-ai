@@ -33,6 +33,17 @@ const MIN_UTTERANCE_MS = 350;
 const MAX_UTTERANCE_MS = 20000;
 const SPEECH_THRESHOLD = 0.018;
 
+/**
+ * CALIBRAÇÃO DO RITMO — silenciosa, sem controle na interface.
+ * Se o usuário volta a falar logo após um enunciado ter sido fechado, ele ainda
+ * estava pensando: a janela de silêncio cresce. Se ele sempre encerra e demora,
+ * a janela volta lentamente ao padrão. Nada disso altera clínica ou avaliação.
+ */
+const SILENCE_MIN = 650;
+const SILENCE_MAX = 1900;
+const RESUME_FAST_MS = 1100;
+
+
 export function useVoiceCapture({ onUtterance, onSpeechStart, suspended }: Options) {
   const [status, setStatus] = useState<CaptureStatus>("off");
   const [amplitude, setAmplitude] = useState(0);
