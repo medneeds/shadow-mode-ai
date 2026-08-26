@@ -290,7 +290,7 @@ function TrainingSetup() {
               }}
               rows={1}
               disabled={busy}
-              placeholder="O que vamos treinar hoje?"
+              placeholder="Escreva ou fale…"
               className="max-h-24 flex-1 resize-none bg-transparent py-2 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none disabled:opacity-50"
             />
             <button
