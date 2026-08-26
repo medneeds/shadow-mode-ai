@@ -5,7 +5,13 @@
 import type { LevelId } from "./shadow-content";
 import { durations, levels, themes } from "./shadow-content";
 import type { VoiceState } from "@/components/shadow/VoicePresence";
-import type { InteractionMode, TrainerProfile, VoicePreference } from "./shadow-trainer";
+import type {
+  ShadowOutputMode,
+  TraineeInputMode,
+  TrainerProfile,
+  VoicePreference,
+} from "./shadow-trainer";
+import type { TraineeInput } from "./trainee-input";
 
 export type SessionStatus = "configuring" | "ready" | "active" | "paused" | "finished";
 
