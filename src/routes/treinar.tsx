@@ -114,7 +114,7 @@ function TrainingSetup() {
         <SectionHeading
           eyebrow="Treinar"
           title="Configurar estação"
-          description="Escolha tema, nível e duração. Você conduzirá o atendimento por voz."
+          description="Escolha tema, nível, duração e como você e o Sombra vão se comunicar."
         />
       </PageSection>
 
