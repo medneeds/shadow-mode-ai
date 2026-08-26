@@ -208,7 +208,8 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
       });
     }, 1000);
     return () => window.clearInterval(interval);
-  }, [session?.status, session?.id, session]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.status, session?.id]);
 
   const value = useMemo<SessionContextValue>(
     () => ({
