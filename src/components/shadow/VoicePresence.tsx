@@ -6,7 +6,7 @@ export const voiceStateLabels: Record<VoiceState, string> = {
   idle: "Pronto para começar",
   listening: "Ouvindo...",
   processing: "Processando...",
-  speaking: "Shadow falando",
+  speaking: "Sombra está falando",
   paused: "Pausado",
   finished: "Estação encerrada",
 };
