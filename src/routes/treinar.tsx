@@ -168,27 +168,27 @@ function TrainingSetup() {
 
       <PageSection className="pb-0">
         <fieldset className="border-t border-hairline pt-10">
-          <legend className="eyebrow">Sombra</legend>
+          <legend className="eyebrow">Respostas do Sombra</legend>
 
           <div className="mt-4 grid gap-8 sm:grid-cols-2">
             <div>
-              <p className="text-sm text-muted-foreground">Interação</p>
+              <p className="text-sm text-muted-foreground">Como o Sombra responde</p>
               <div className="mt-3 grid grid-cols-2 gap-3">
-                {interactionModes.map((m) => (
+                {shadowOutputModes.map((m) => (
                   <OptionChip
                     key={m.id}
                     label={m.label}
                     hint={m.hint}
-                    selected={config.interactionMode === m.id}
-                    onSelect={() => setConfig({ interactionMode: m.id })}
+                    selected={config.shadowOutputMode === m.id}
+                    onSelect={() => setConfig({ shadowOutputMode: m.id })}
                   />
                 ))}
               </div>
             </div>
 
-            {config.interactionMode === "voice_text" && (
+            {config.shadowOutputMode === "voice_text" && (
               <div>
-                <p className="text-sm text-muted-foreground">Voz</p>
+                <p className="text-sm text-muted-foreground">Voz do Sombra</p>
                 <div className="mt-3 grid grid-cols-2 gap-3">
                   {voicePreferences.map((v) => (
                     <OptionChip
@@ -202,8 +202,35 @@ function TrainingSetup() {
               </div>
             )}
           </div>
+        </fieldset>
 
-          <div className="mt-8">
+        <fieldset className="mt-12 border-t border-hairline pt-10">
+          <legend className="eyebrow">Suas respostas</legend>
+
+          <p className="mt-4 text-sm text-muted-foreground">Como você responde durante a estação</p>
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {traineeInputModes.map((m) => (
+              <OptionChip
+                key={m.id}
+                label={m.label}
+                hint={m.hint}
+                selected={config.traineeInputMode === m.id}
+                onSelect={() => setConfig({ traineeInputMode: m.id })}
+              />
+            ))}
+          </div>
+          <p className="mt-3 max-w-xl text-xs leading-relaxed text-muted-foreground">
+            Falar ou digitar não muda sua avaliação. A devolutiva considera conteúdo, prioridade,
+            tempo e sequência — nunca a forma de responder.
+          </p>
+        </fieldset>
+      </PageSection>
+
+      <PageSection className="pb-0">
+        <fieldset className="border-t border-hairline pt-10">
+          <legend className="eyebrow">Perfil do treinador</legend>
+
+          <div className="mt-4">
             <p className="text-sm text-muted-foreground">Perfil</p>
             <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
               {trainerProfiles.map((p) => (
