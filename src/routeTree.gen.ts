@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DesempenhoRouteImport } from './routes/desempenho'
 import { Route as HistoricoRouteImport } from './routes/historico'
 import { Route as ModoSombraRouteImport } from './routes/modo-sombra'
+import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as ResultadoRouteImport } from './routes/resultado'
 import { Route as TreinarRouteImport } from './routes/treinar'
 
@@ -36,6 +37,11 @@ const ModoSombraRoute = ModoSombraRouteImport.update({
   path: '/modo-sombra',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PerfilRoute = PerfilRouteImport.update({
+  id: '/perfil',
+  path: '/perfil',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResultadoRoute = ResultadoRouteImport.update({
   id: '/resultado',
   path: '/resultado',
@@ -52,6 +58,7 @@ export interface FileRoutesByFullPath {
   '/desempenho': typeof DesempenhoRoute
   '/historico': typeof HistoricoRoute
   '/modo-sombra': typeof ModoSombraRoute
+  '/perfil': typeof PerfilRoute
   '/resultado': typeof ResultadoRoute
   '/treinar': typeof TreinarRoute
 }
@@ -60,6 +67,7 @@ export interface FileRoutesByTo {
   '/desempenho': typeof DesempenhoRoute
   '/historico': typeof HistoricoRoute
   '/modo-sombra': typeof ModoSombraRoute
+  '/perfil': typeof PerfilRoute
   '/resultado': typeof ResultadoRoute
   '/treinar': typeof TreinarRoute
 }
@@ -69,6 +77,7 @@ export interface FileRoutesById {
   '/desempenho': typeof DesempenhoRoute
   '/historico': typeof HistoricoRoute
   '/modo-sombra': typeof ModoSombraRoute
+  '/perfil': typeof PerfilRoute
   '/resultado': typeof ResultadoRoute
   '/treinar': typeof TreinarRoute
 }
@@ -79,6 +88,7 @@ export interface FileRouteTypes {
     | '/desempenho'
     | '/historico'
     | '/modo-sombra'
+    | '/perfil'
     | '/resultado'
     | '/treinar'
   fileRoutesByTo: FileRoutesByTo
@@ -87,6 +97,7 @@ export interface FileRouteTypes {
     | '/desempenho'
     | '/historico'
     | '/modo-sombra'
+    | '/perfil'
     | '/resultado'
     | '/treinar'
   id:
@@ -95,6 +106,7 @@ export interface FileRouteTypes {
     | '/desempenho'
     | '/historico'
     | '/modo-sombra'
+    | '/perfil'
     | '/resultado'
     | '/treinar'
   fileRoutesById: FileRoutesById
@@ -104,6 +116,7 @@ export interface RootRouteChildren {
   DesempenhoRoute: typeof DesempenhoRoute
   HistoricoRoute: typeof HistoricoRoute
   ModoSombraRoute: typeof ModoSombraRoute
+  PerfilRoute: typeof PerfilRoute
   ResultadoRoute: typeof ResultadoRoute
   TreinarRoute: typeof TreinarRoute
 }
@@ -138,6 +151,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ModoSombraRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/perfil': {
+      id: '/perfil'
+      path: '/perfil'
+      fullPath: '/perfil'
+      preLoaderRoute: typeof PerfilRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/resultado': {
       id: '/resultado'
       path: '/resultado'
@@ -160,6 +180,7 @@ const rootRouteChildren: RootRouteChildren = {
   DesempenhoRoute: DesempenhoRoute,
   HistoricoRoute: HistoricoRoute,
   ModoSombraRoute: ModoSombraRoute,
+  PerfilRoute: PerfilRoute,
   ResultadoRoute: ResultadoRoute,
   TreinarRoute: TreinarRoute,
 }
