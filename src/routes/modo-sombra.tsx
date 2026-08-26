@@ -5,6 +5,7 @@ import { ArrowUp, Mic, MicOff, Pause, Play, Square, Volume2, VolumeX } from "luc
 
 import { VoicePresence } from "@/components/shadow/VoicePresence";
 import { PresenceStatus } from "@/components/shadow/PresenceStatus";
+import { PresenceControl } from "@/components/shadow/PresenceControl";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
