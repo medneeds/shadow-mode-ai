@@ -1,0 +1,363 @@
+/**
+ * Choque séptico de foco urinário (fictício).
+ * Conteúdo clínico: needs_clinical_review.
+ */
+import {
+  action,
+  actions,
+  defineCase,
+  expected,
+  finding,
+  info,
+  infoOnAction,
+  investigation,
+  patientState,
+  trigger,
+} from "../case-authoring";
+
+export const septicShockCase = defineCase({
+  id: "case-ps-choque-septico-urinario",
+  title: "Idosa hipotensa e febril vinda de casa",
+  meta: {
+    specialty: "infectologia",
+    topic: "Choque",
+    subtopic: "Choque séptico",
+    archetype: "shock",
+    setting: "emergency_department",
+    difficulty: "intermediario",
+    clinicalSyndrome: "Hipotensão com sinais de infecção e má perfusão",
+    primaryDiagnosis: "Choque séptico de foco urinário",
+    dangerousDifferentials: ["Choque hipovolêmico", "Choque cardiogênico", "Choque obstrutivo"],
+    ageGroup: "elderly",
+    acuity: "critical",
+    skills: ["initial_approach", "treatment", "prioritization", "reassessment", "disposition"],
+    compatibleDurations: ["5", "15", "30"],
+    estimatedMinutes: 15,
+    review: { status: "needs_clinical_review" },
+    keywords: ["choque", "sepse", "septico", "hipotensao", "febre", "infeccao urinaria", "lactato"],
+  },
+  setting: "Sala de emergência de pronto-socorro",
+  opening:
+    "Mulher de 76 anos chega ao pronto-socorro sonolenta, febril e hipotensa, trazida pela filha. Você assume o atendimento agora.",
+  patient: {
+    age: 76,
+    biologicalSex: "female",
+    chiefPresentation: "Prostração e febre há dois dias, com piora hoje",
+    information: [
+      info("info-obs", "observável", "Idosa sonolenta, pele quente, respondendo com frases curtas.", {
+        kind: "observable",
+      }),
+      infoOnAction(
+        "info-hda",
+        "história",
+        "Há dois dias com febre, disúria e urina de odor forte. Hoje ficou confusa e parou de se alimentar.",
+        "history_hpi",
+      ),
+      infoOnAction(
+        "info-familia",
+        "família",
+        "A filha conta que ela vive sozinha, teve infecção urinária há dois meses e não procurou atendimento antes.",
+        "history_family",
+      ),
+      infoOnAction(
+        "info-medicacoes",
+        "medicações",
+        "Usa losartana e metformina. Alergia relatada a sulfa.",
+        "history_medications",
+      ),
+    ],
+  },
+  initialState: patientState({
+    consciousness: "confused",
+    breathing: { effort: "increased", description: "Taquipneia leve" },
+    circulation: { perfusion: "poor", description: "Extremidades quentes, enchimento capilar de 4 segundos" },
+    neurologic: { gcs: 13 },
+    vitals: {
+      heartRate: 124,
+      respiratoryRate: 28,
+      systolicBP: 82,
+      diastolicBP: 48,
+      oxygenSaturation: 93,
+      temperatureC: 38.9,
+    },
+    tags: ["sepse", "hipoperfusão"],
+  }),
+  variableVitals: { heartRate: [116, 124, 132], systolicBP: [76, 82, 88], temperatureC: [38.6, 38.9, 39.3] },
+  hidden: {
+    diagnosis: "Choque séptico de foco urinário",
+    differentials: ["Choque hipovolêmico", "Choque cardiogênico"],
+    evaluation: {
+      competencies: ["Ressuscitação volêmica", "Antibiótico precoce", "Culturas antes do antibiótico", "Vasopressor"],
+      educationalPurpose: "Executar o pacote inicial da sepse com prioridade correta e reavaliar a resposta.",
+      rubricNotes: [
+        "Antibiótico na primeira hora é o marcador central.",
+        "Vasopressor após volume, não antes de qualquer reposição.",
+      ],
+    },
+  },
+  actions: [
+    ...actions(
+      [
+        "check_vital_signs",
+        "place_monitoring",
+        "obtain_iv_access",
+        "administer_oxygen",
+        "administer_fluids",
+        "request_laboratory_tests",
+        "request_lactate",
+        "request_blood_gas",
+        "request_chest_xray",
+        "history_hpi",
+        "history_family",
+        "history_medications",
+        "exam_general",
+        "exam_abdomen",
+        "exam_respiratory",
+        "reassess_vitals",
+        "request_specialist",
+        "disposition_icu",
+        "disposition_ward",
+        "disposition_discharge",
+      ],
+      {
+        administer_oxygen: {
+          immediateFact: "Oxigênio suplementar instalado; a saturação sobe para 96%.",
+          statePatch: { vitals: { oxygenSaturation: 96 } },
+        },
+        administer_fluids: {
+          label: "Iniciar ressuscitação volêmica com cristaloide",
+          immediateFact:
+            "Cristaloide em infusão rápida: a pressão sobe para 94/56 mmHg e a paciente fica mais responsiva.",
+          statePatch: {
+            consciousness: "alert",
+            circulation: { perfusion: "reduced", description: "Perfusão em recuperação" },
+            vitals: { systolicBP: 94, diastolicBP: 56, heartRate: 112 },
+            addTags: ["volume iniciado"],
+          },
+          eventType: "improvement_after_treatment",
+        },
+        reassess_vitals: {
+          immediateFact: "Você reafere sinais vitais e reavalia a perfusão periférica.",
+          eventType: "reassessment_result",
+        },
+        request_specialist: {
+          immediateFact: "A terapia intensiva é acionada para avaliação de vaga.",
+          requestsInvestigationId: "inv_specialist",
+        },
+        disposition_icu: {
+          immediateFact: "Paciente encaminhada à terapia intensiva com antibiótico e vasopressor em curso.",
+          statePatch: { addTags: ["estabilizado"] },
+        },
+        disposition_ward: { immediateFact: "Você solicita internação em enfermaria." },
+        disposition_discharge: { immediateFact: "Você define alta hospitalar." },
+      },
+    ),
+    action("collect_cultures", {
+      label: "Coletar hemoculturas e urocultura",
+      category: "investigation",
+      immediateFact: "Duas hemoculturas e urocultura coletadas antes do antibiótico.",
+      statePatch: { addTags: ["culturas coletadas"] },
+    }),
+    action("administer_antibiotics", {
+      label: "Administrar antibiótico de amplo espectro",
+      category: "medication",
+      patchRequiresTag: "sepse",
+      immediateFact: "Antibiótico de amplo espectro administrado por via intravenosa, ajustado à alergia relatada.",
+      ineffectiveFact: "Antibiótico administrado sem indicação identificada no caso.",
+      statePatch: { addTags: ["antibiótico administrado", "tratamento definitivo"] },
+      eventType: "improvement_after_treatment",
+    }),
+    action("start_vasopressor", {
+      label: "Iniciar vasopressor",
+      category: "medication",
+      prerequisites: ["administer_fluids"],
+      immediateFact: "Noradrenalina iniciada em bomba: a pressão média sobe e a perfusão melhora.",
+      statePatch: {
+        circulation: { perfusion: "normal", description: "Perfusão restabelecida com vasopressor" },
+        vitals: { systolicBP: 106, diastolicBP: 62, heartRate: 104 },
+        addTags: ["vasopressor"],
+        removeTags: ["hipoperfusão"],
+      },
+      eventType: "improvement_after_treatment",
+    }),
+    action("insert_urinary_catheter", {
+      label: "Instalar sonda vesical e monitorar diurese",
+      category: "procedure",
+      immediateFact: "Sonda vesical instalada; drena urina turva e de odor fétido.",
+      statePatch: { addTags: ["diurese monitorada"] },
+    }),
+  ],
+  examFindings: [
+    finding("f-geral", "geral", "Mucosas secas, pele quente, tempo de enchimento capilar de 4 segundos.", "exam_general"),
+    finding("f-abdome", "abdominal", "Dor à percussão em loja renal direita; abdome sem sinais de peritonite.", "exam_abdomen"),
+    finding("f-resp", "respiratório", "Murmúrio vesicular presente bilateralmente, sem crepitações.", "exam_respiratory"),
+    finding("f-vitais", "geral", "Hipotensão com taquicardia e febre de 38,9 °C.", "check_vital_signs"),
+  ],
+  investigations: [
+    investigation("inv_lactate", "Lactato arterial de 4,6 mmol/L.", { availabilityDelaySeconds: 240 }),
+    investigation(
+      "inv_labs",
+      "Leucocitose com desvio à esquerda, creatinina 2,1 mg/dL (basal 0,9), proteína C reativa elevada; urina com piúria e nitrito positivo.",
+    ),
+    investigation("inv_blood_gas", "Gasometria: acidose metabólica com ânion gap aumentado."),
+    investigation("inv_chest_xray", "Radiografia de tórax sem consolidações."),
+    investigation("inv_specialist", "A terapia intensiva confirma vaga e orienta manter alvo de pressão média."),
+  ],
+  timeTriggers: [
+    trigger(
+      "trg-hipotensao-300",
+      300,
+      "A enfermagem informa que a pressão caiu para 74/42 mmHg e a paciente está mais sonolenta.",
+      {
+        conditions: [{ kind: "action_missing", actionId: "administer_fluids" }],
+        statePatch: {
+          consciousness: "somnolent",
+          vitals: { systolicBP: 74, diastolicBP: 42, heartRate: 132 },
+          addTags: ["deterioração"],
+        },
+        branchId: "branch-deterioracao",
+        source: "omission_trigger",
+      },
+    ),
+    trigger(
+      "trg-antibiotico-900",
+      900,
+      "A enfermagem registra que a primeira hora se passou sem antibiótico administrado.",
+      {
+        conditions: [{ kind: "action_missing", actionId: "administer_antibiotics" }],
+        statePatch: { addTags: ["antibiótico tardio"] },
+        branchId: "branch-deterioracao",
+        source: "omission_trigger",
+        eventType: "clinical_deterioration",
+      },
+    ),
+  ],
+  branches: [
+    {
+      id: "branch-deterioracao",
+      label: "Choque refratário",
+      kind: "deterioration",
+      tag: "deterioração",
+      description: "Sem volume e sem antibiótico oportuno, a hipoperfusão progride.",
+    },
+  ],
+  outcomes: [
+    {
+      id: "out-estabilizado",
+      label: "Choque revertido e encaminhado à terapia intensiva",
+      kind: "stabilized",
+      conditions: [
+        { kind: "has_tag", tag: "antibiótico administrado" },
+        { kind: "has_tag", tag: "estabilizado" },
+      ],
+      description: "Pacote inicial completo e destino adequado definido.",
+    },
+  ],
+  objectives: [
+    {
+      id: "obj-acesso",
+      label: "Garantir acesso vascular",
+      domain: "initial_approach",
+      satisfiedByAnyOf: ["obtain_iv_access"],
+      critical: true,
+      recommendedWindowSeconds: 240,
+    },
+  ],
+  expectedActions: [
+    expected("obtain_iv_access", {
+      importance: "critical",
+      weight: 10,
+      critical: true,
+      windowSeconds: 240,
+      objectiveId: "obj-acesso",
+      clinicalRelevance: "Sem acesso não há ressuscitação nem antibiótico.",
+    }),
+    expected("administer_fluids", {
+      importance: "critical",
+      weight: 18,
+      critical: true,
+      windowSeconds: 420,
+      clinicalRelevance: "A reposição volêmica precoce é a primeira intervenção do choque séptico.",
+      learningPoint: "Volume primeiro, vasopressor depois — e sempre com reavaliação.",
+      omission: {
+        description: "A ressuscitação volêmica não foi iniciada.",
+        consequenceTriggerId: "trg-hipotensao-300",
+      },
+    }),
+    expected("administer_antibiotics", {
+      importance: "critical",
+      weight: 22,
+      critical: true,
+      windowSeconds: 900,
+      clinicalRelevance: "Cada hora de atraso do antibiótico aumenta a mortalidade na sepse.",
+      learningPoint: "Colha culturas, mas não atrase o antibiótico por causa delas.",
+      omission: {
+        description: "O antibiótico não foi administrado dentro da primeira hora.",
+        consequenceTriggerId: "trg-antibiotico-900",
+      },
+    }),
+    expected("collect_cultures", {
+      importance: "important",
+      weight: 10,
+      windowSeconds: 780,
+      clinicalRelevance: "Culturas antes do antibiótico orientam o descalonamento.",
+    }),
+    expected("request_lactate", { importance: "important", weight: 8, windowSeconds: 480 }),
+    expected("start_vasopressor", {
+      importance: "important",
+      weight: 10,
+      windowSeconds: 900,
+      clinicalRelevance: "Hipotensão persistente após volume exige vasopressor.",
+    }),
+    expected("exam_abdomen", { importance: "expected", weight: 6, windowSeconds: 480 }),
+    expected("history_hpi", { importance: "expected", weight: 6, windowSeconds: 360 }),
+    expected("reassess_vitals", { importance: "important", weight: 8, windowSeconds: 720 }),
+    expected("disposition_icu", { importance: "important", weight: 12, windowSeconds: 1200 }),
+  ],
+  scoring: {
+    caseVersion: "1.0.0",
+    scoringVersion: "phase-06",
+    domains: ["initial_approach", "investigation", "treatment", "prioritization", "reassessment", "safety", "disposition"],
+    unsafeActions: [
+      {
+        actionId: "disposition_discharge",
+        description: "Alta hospitalar em vigência de choque séptico.",
+        domain: "safety",
+        penaltyPoints: 30,
+      },
+    ],
+    expectedManagement: [
+      "Reconhecer o choque e obter acesso venoso imediatamente.",
+      "Coletar culturas e iniciar antibiótico de amplo espectro na primeira hora.",
+      "Ressuscitação volêmica com cristaloide e reavaliação da perfusão.",
+      "Vasopressor se hipotensão persistir, com encaminhamento à terapia intensiva.",
+    ],
+    hypotheses: {
+      essential: ["Choque séptico"],
+      acceptable: ["Sepse de foco urinário", "Infecção do trato urinário complicada"],
+      dangerous: ["Desidratação simples com alta hospitalar"],
+    },
+  },
+  relevantSpecialties: ["Terapia intensiva", "Infectologia"],
+  completion: {
+    resolutionActionIds: ["administer_antibiotics", "disposition_icu"],
+    stabilizedTag: "estabilizado",
+    maxClinicalSeconds: 1800,
+  },
+  variants: [
+    {
+      id: "var-intermediario-classico",
+      label: "Foco urinário evidente",
+      difficulty: "intermediario",
+      reviewNote: "História e exame apontam o foco com clareza.",
+    },
+    {
+      id: "var-avancado-foco-oculto",
+      label: "Foco oculto e hipotensão refratária",
+      difficulty: "avancado",
+      initialVitals: { systolicBP: 72, diastolicBP: 40, heartRate: 136, temperatureC: 35.4 },
+      triggerTimeShiftSeconds: -120,
+      reviewNote: "Hipotermia em vez de febre e sem disúria clara; exige raciocínio mais fino.",
+    },
+  ],
+});
