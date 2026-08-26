@@ -56,12 +56,22 @@ export function VoicePresence({
   ampPropRef.current = amplitude;
   getAmpRef.current = getAmplitude;
 
+  const reducedRef = useRef(false);
+
+  // Movimento contínuo desligado: o estado segue legível por luminosidade.
+  useEffect(() => {
+    if (!reducedRef.current) return;
+    const target = STATE_TARGETS[state];
+    coreRef.current?.setAttribute("opacity", String(target.core));
+    glowRef.current?.setAttribute("opacity", String(target.glow));
+  }, [state]);
+
   useEffect(() => {
     const reduced =
       typeof window !== "undefined" &&
       window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    reducedRef.current = Boolean(reduced);
 
-    // Movimento contínuo é desligado: o estado segue legível por luminosidade.
     if (reduced) {
       for (const [index, layer] of layerRefs.current.entries()) {
         const config = LAYERS[index];
