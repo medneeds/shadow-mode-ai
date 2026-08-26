@@ -255,8 +255,8 @@ function TrainingSetup() {
   return (
     <AppShell>
       <PageSection>
-        <div className="grid gap-10 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] xl:gap-20">
-        <div className="flex flex-col items-center text-center xl:items-start xl:text-left">
+        <div className="grid gap-10 xl:min-h-[70vh] xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] xl:gap-20">
+        <div className="flex flex-col items-center text-center xl:items-start xl:justify-center xl:text-left">
           {earlier.length > 0 && (
             <p className="mb-4 line-clamp-1 max-w-md text-xs text-muted-foreground/40">
               {earlier[earlier.length - 1]?.text}
@@ -370,7 +370,7 @@ function TrainingSetup() {
           )}
         </div>
 
-        <div className="flex flex-col items-center gap-8 xl:items-start xl:pt-4">
+        <div className="flex flex-col items-center gap-8 xl:items-start xl:justify-center xl:pt-4">
           <QuickStations className="mt-0 xl:max-w-lg" onPick={handleQuickStation} disabled={busy} />
 
           {/* Configuração é contexto: chips do que já foi dito + atalhos. */}
