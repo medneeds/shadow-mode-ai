@@ -185,9 +185,35 @@ export function validateCase(def: ClinicalCaseDefinition): CaseValidationReport 
     );
 
   /* --------------------------------------------------------- andaime ---- */
+  // Palavras clínicas genéricas não vazam diagnóstico: descrevem o exame, não a hipótese.
+  const genericTerms = new Set([
+    "aguda",
+    "agudo",
+    "aérea",
+    "aerea",
+    "arterial",
+    "cardíaca",
+    "cardiaca",
+    "compatível",
+    "compativel",
+    "comprometimento",
+    "grave",
+    "início",
+    "inicio",
+    "provável",
+    "provavel",
+    "quadro",
+    "respiratória",
+    "respiratoria",
+    "secundária",
+    "secundaria",
+    "súbita",
+    "subita",
+  ]);
   const leakTerms = [def.hidden.diagnosis, ...def.hidden.differentials]
     .flatMap((t) => t.toLowerCase().split(/[\s,;()]+/))
-    .filter((w) => w.length >= 5);
+    .filter((w) => w.length >= 5 && !genericTerms.has(w));
+
   const pointIds = new Set<string>();
   for (const point of def.guidance?.points ?? []) {
     if (pointIds.has(point.id)) add("duplicate_guidance_point", `Ponto duplicado: ${point.id}.`);
