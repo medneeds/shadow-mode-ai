@@ -16,7 +16,12 @@ import {
   type TrainingConfig,
   type TrainingSession,
 } from "./training-session";
-import { createTraineeInput, type TraineeInput, type TraineeInputSource } from "./trainee-input";
+import {
+  createTraineeInput,
+  type TraineeAction,
+  type TraineeInput,
+  type TraineeInputSource,
+} from "./trainee-input";
 import { advanceClinicalTime, initializeCase } from "./clinical/clinical-case-engine";
 import type { ClinicalCaseRuntime } from "./clinical/clinical-case-types";
 import { referenceCase } from "./clinical/reference-cases";
@@ -43,6 +48,8 @@ type SessionContextValue = {
    * para a mesma estrutura (TraineeInput) e para o mesmo pipeline.
    */
   submitTraineeInput: (source: TraineeInputSource, rawContent: string) => TraineeInput | null;
+  /** Registra o que o Sombra entendeu de uma entrada (transparência pós-estação). */
+  recordInterpretation: (inputId: string, actions: TraineeAction[]) => void;
 
   /* --- conversa (uma resposta canônica do Sombra por turno) --- */
   setupMessages: ShadowMessage[];
@@ -56,6 +63,8 @@ type SessionContextValue = {
   /** Fatos emitidos pelo tempo, aguardando fraseado do treinador. */
   pendingFacts: string[];
   consumePendingFacts: () => string[];
+  /** Runtime clínico da última estação concluída — base da avaliação. */
+  lastRuntime: ClinicalCaseRuntime | null;
 };
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -69,6 +78,8 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
   const [roomMessages, setRoomMessages] = useState<ShadowMessage[]>([]);
   const [runtime, setRuntimeState] = useState<ClinicalCaseRuntime | null>(null);
   const [pendingFacts, setPendingFacts] = useState<string[]>([]);
+  const [lastRuntime, setLastRuntime] = useState<ClinicalCaseRuntime | null>(null);
+  const runtimeRef = useRef<ClinicalCaseRuntime | null>(null);
 
   const setConfig = useCallback((next: Partial<TrainingConfig>) => {
     setConfigState((prev) => ({ ...prev, ...next }));
@@ -91,7 +102,14 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
     [],
   );
 
-  const setRuntime = useCallback((next: ClinicalCaseRuntime) => setRuntimeState(next), []);
+  const setRuntime = useCallback((next: ClinicalCaseRuntime) => {
+    runtimeRef.current = next;
+    setRuntimeState(next);
+  }, []);
+
+  useEffect(() => {
+    runtimeRef.current = runtime;
+  }, [runtime]);
 
   const consumePendingFacts = useCallback(() => {
     const facts = pendingFacts;
@@ -100,8 +118,10 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
   }, [pendingFacts]);
 
   const startSession = useCallback(() => {
+    const initial = initializeCase(referenceCase);
     setSession(createSession(config));
-    setRuntimeState(initializeCase(referenceCase));
+    runtimeRef.current = initial;
+    setRuntimeState(initial);
     setRoomMessages([]);
     setPendingFacts([]);
   }, [config]);
@@ -140,6 +160,7 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
     sessionRef.current = finished;
     setSession(finished);
     setLastCompleted(finished);
+    if (runtimeRef.current) setLastRuntime(runtimeRef.current);
     return finished;
   }, []);
 
@@ -172,6 +193,21 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
     return input;
   }, []);
 
+  const recordInterpretation = useCallback((inputId: string, actions: TraineeAction[]) => {
+    setSession((prev) =>
+      prev
+        ? {
+            ...prev,
+            traineeInputs: prev.traineeInputs.map((input) =>
+              input.id === inputId
+                ? { ...input, interpretation: { status: "interpreted", actions } }
+                : input,
+            ),
+          }
+        : prev,
+    );
+  }, []);
+
   // Cronômetro + tempo clínico determinístico (o motor decide, nunca o modelo).
   useEffect(() => {
     if (!session || session.status !== "active") return;
@@ -198,6 +234,7 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
             completed: true,
           };
           setLastCompleted(finished);
+          if (runtimeRef.current) setLastRuntime(runtimeRef.current);
           return finished;
         }
         return { ...prev, remainingSeconds };
@@ -222,6 +259,7 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
       clearSession,
       setVoiceState,
       submitTraineeInput,
+      recordInterpretation,
       setupMessages,
       addSetupMessage,
       roomMessages,
@@ -230,6 +268,7 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
       setRuntime,
       pendingFacts,
       consumePendingFacts,
+      lastRuntime,
     }),
     [
       config,
@@ -245,6 +284,7 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
       clearSession,
       setVoiceState,
       submitTraineeInput,
+      recordInterpretation,
       setupMessages,
       addSetupMessage,
       roomMessages,
@@ -253,6 +293,7 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
       setRuntime,
       pendingFacts,
       consumePendingFacts,
+      lastRuntime,
     ],
   );
 

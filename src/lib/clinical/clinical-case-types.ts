@@ -11,6 +11,7 @@
  */
 import type { ClinicalEventType } from "@/lib/shadow-trainer";
 import type { LevelId } from "@/lib/shadow-content";
+import type { EvaluationDomain } from "@/lib/evaluation/evaluation-types";
 
 /* ---------------------------------------------------------------- ações ---- */
 
@@ -224,7 +225,7 @@ export type ExpectedAction = {
   actionId: string;
   category: ActionCategory;
   importance: ActionImportance;
-  /** Peso para o algoritmo de avaliação futuro (não calculado nesta fase). */
+  /** Peso no algoritmo determinístico de avaliação (Phase 06). */
   scoreWeight: number;
   critical: boolean;
   /** Janela clínica recomendada, em segundos de tempo clínico. */
@@ -232,7 +233,52 @@ export type ExpectedAction = {
   prerequisites?: string[];
   /** Status considerado suficiente. */
   completionStatus: ActionStatus;
+  /** Domínio de avaliação (Phase 06). Sem isto, deriva-se da categoria. */
+  domain?: EvaluationDomain;
+  /** Por que a ação importa clinicamente — usado no debriefing pós-estação. */
+  clinicalRelevance?: string;
+  /** Ensino acionável para "Como melhorar" (pós-estação, nunca durante). */
+  learningPoint?: string;
+  /** Consequência definida pelo caso quando a ação crítica é omitida. */
+  omission?: {
+    description: string;
+    /** Só é exibida se este gatilho realmente disparou na estação. */
+    consequenceTriggerId?: string;
+    consequence?: string;
+  };
 };
+
+/** Ação explicitamente insegura, definida pelo caso (nunca inferida pelo LLM). */
+export type UnsafeActionRule = {
+  actionId: string;
+  description: string;
+  domain: EvaluationDomain;
+  /** Pontos subtraídos do total (0..100). */
+  penaltyPoints: number;
+  /** Só é insegura se o paciente tiver esta tag no momento da ação. */
+  onlyWithTag?: string;
+};
+
+/** Metadados de pontuação/debriefing do caso. Autoridade absoluta da rubrica. */
+export type CaseScoringMetadata = {
+  caseVersion: string;
+  scoringVersion: string;
+  /** Domínios aplicáveis a este caso. */
+  domains: EvaluationDomain[];
+  /** Crédito parcial para ação correta realizada fora da janela (0..1). */
+  lateCreditFactor: number;
+  /** Crédito parcial para ação solicitada mas não concluída (0..1). */
+  incompleteCreditFactor: number;
+  unsafeActions?: UnsafeActionRule[];
+  /** Conduta esperada do caso — revelada apenas após a estação. */
+  expectedManagement: string[];
+  hypotheses?: {
+    essential: string[];
+    acceptable: string[];
+    dangerous: string[];
+  };
+};
+
 
 /* -------------------------------------------------------- gatilhos ------- */
 
@@ -284,6 +330,8 @@ export type ClinicalCaseDefinition = {
   examFindings: ExamFinding[];
   investigations: InvestigationDefinition[];
   timeTriggers: TimeTrigger[];
+  /** Rubrica determinística (Phase 06). */
+  scoring: CaseScoringMetadata;
   completion: {
     /** Ações que caracterizam desfecho conduzido. */
     resolutionActionIds: string[];

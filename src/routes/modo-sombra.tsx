@@ -60,6 +60,7 @@ function ShadowRoom() {
     finishSession,
     setVoiceState,
     submitTraineeInput,
+    recordInterpretation,
     roomMessages,
     addRoomMessage,
     runtime,
@@ -221,6 +222,11 @@ function ShadowRoom() {
         if (turnRef.current !== turnId) return;
 
         setRuntime(result.runtime);
+        // Transparência de interpretação: o que o Sombra entendeu desta entrada.
+        recordInterpretation(
+          input.id,
+          result.actions.map((a) => ({ actionId: a.actionId, sourceExcerpt: text })),
+        );
         if (result.metaCommands.length > 0) applyMetaCommands(result.metaCommands);
         if (result.shadowText) {
           addRoomMessage("shadow", result.shadowText, clinicalTime);
@@ -240,6 +246,7 @@ function ShadowRoom() {
       session,
       runtime,
       submitTraineeInput,
+      recordInterpretation,
       speech,
       addRoomMessage,
       clinicalTime,
