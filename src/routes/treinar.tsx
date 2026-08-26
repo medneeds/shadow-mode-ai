@@ -279,7 +279,9 @@ function TrainingSetup() {
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
-                  void send();
+                  const content = draft;
+                  setDraft("");
+                  void send(content);
                 }
               }}
               rows={1}
