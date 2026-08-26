@@ -79,9 +79,15 @@ function TrainingSetup() {
               ))}
             </dl>
 
-            <div className="mt-6 rounded-lg border border-hairline bg-surface p-4">
-              <p className="eyebrow">Sombra</p>
-              <p className="mt-2 font-display text-base">{shadowLine}</p>
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-lg border border-hairline bg-surface p-4">
+                <p className="eyebrow">Respostas do Sombra</p>
+                <p className="mt-2 font-display text-base">{shadowLine}</p>
+              </div>
+              <div className="rounded-lg border border-hairline bg-surface p-4">
+                <p className="eyebrow">Suas respostas</p>
+                <p className="mt-2 font-display text-base">{traineeLine}</p>
+              </div>
             </div>
 
             <p className="mt-6 text-sm leading-relaxed text-muted-foreground">
