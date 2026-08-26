@@ -44,10 +44,11 @@ function TrainingSetup() {
     config.durationId,
   )}`;
   const shadowLine = shadowSummary(
-    config.interactionMode,
+    config.shadowOutputMode,
     config.voicePreference,
     config.trainerProfile,
   );
+  const traineeLine = traineeSummary(config.traineeInputMode);
 
   const handleStart = () => {
     startSession();
