@@ -257,9 +257,9 @@ function TrainingSetup() {
             <p className="eyebrow">Sua estação</p>
             <p className="mt-2 font-display text-lg">{summary}</p>
             <p className="mt-1 text-sm text-muted-foreground">Sombra · {shadowLine}</p>
+            <p className="text-sm text-muted-foreground">Suas respostas · {traineeLine}</p>
             <p className="mt-2 max-w-md text-xs leading-relaxed text-muted-foreground">
-              Você conduzirá o atendimento por voz. Nenhuma lista de tarefas será exibida durante a
-              estação.
+              Nenhuma lista de tarefas será exibida durante a estação.
             </p>
           </div>
           <Button size="lg" onClick={() => setStep("review")}>
