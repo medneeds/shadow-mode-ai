@@ -3,7 +3,12 @@ import { cn } from "@/lib/utils";
 
 export function PageSection({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <section className={cn("mx-auto w-full max-w-6xl px-5 py-12 sm:px-8 sm:py-16", className)}>
+    <section
+      className={cn(
+        "mx-auto w-full max-w-6xl px-5 py-12 sm:px-8 sm:py-16 lg:px-12 xl:max-w-7xl 2xl:max-w-[88rem]",
+        className,
+      )}
+    >
       {children}
     </section>
   );
@@ -66,7 +71,7 @@ export function OptionChip({
 
 export function MeterRow({ label, value }: { label: string; value: number }) {
   return (
-    <div className="py-3">
+    <div className="border-t border-[color:var(--hairline)] py-3">
       <div className="flex items-baseline justify-between gap-4">
         <span className="text-sm text-foreground">{label}</span>
         <span className="font-display text-sm text-muted-foreground tabular-nums">{value}</span>
