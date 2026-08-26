@@ -43,7 +43,7 @@ export function AmbientTranscript({
           "linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.55) 18%, rgba(0,0,0,0.9) 55%, transparent 100%)",
       }}
     >
-      <div className="mx-auto flex h-full max-w-md flex-col justify-end gap-1.5 overflow-hidden px-6 pb-24 pt-16">
+      <div className="mx-auto flex h-full max-w-md flex-col justify-end gap-1.5 overflow-hidden px-6 pb-24 pt-16 lg:max-w-2xl lg:px-16">
         {messages.slice(-14).map((message) => (
           <p
             key={message.id}

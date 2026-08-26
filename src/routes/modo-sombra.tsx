@@ -463,7 +463,7 @@ function ShadowRoom() {
       <main className="relative z-10 flex flex-1 flex-col items-center justify-center gap-1 px-5 text-center">
         <p
           aria-live="polite"
-          className="max-w-lg font-display text-lg leading-relaxed text-foreground sm:text-xl"
+          className="max-w-lg font-display text-lg leading-relaxed text-foreground sm:text-xl lg:max-w-2xl lg:text-2xl"
         >
           {paused ? "Estação pausada" : (lastShadow?.text ?? "")}
         </p>
@@ -494,7 +494,7 @@ function ShadowRoom() {
             state={voiceState}
             getAmplitude={getAmplitude}
             pace={profilePace[config.trainerProfile] ?? 1}
-            className="-my-4"
+            className="-my-4 lg:scale-110 xl:scale-125"
           />
         </PresenceControl>
 
@@ -516,7 +516,7 @@ function ShadowRoom() {
               e.preventDefault();
               sendDraft();
             }}
-            className="mx-auto mb-3 flex max-w-md items-end gap-2 border-b border-hairline pb-1 focus-within:border-moss/50"
+            className="mx-auto mb-3 flex max-w-md items-end gap-2 border-b border-hairline pb-1 focus-within:border-moss/50 lg:max-w-xl"
           >
             <label className="sr-only" htmlFor="conduta">
               Sua conduta
@@ -558,7 +558,7 @@ function ShadowRoom() {
           </form>
         )}
 
-        <div className="mx-auto flex max-w-md flex-wrap items-center justify-center gap-2">
+        <div className="mx-auto flex max-w-md flex-wrap items-center justify-center gap-2 lg:max-w-2xl">
           {wantsVoiceInput && !voiceInputBroken && (
             <RoomButton
               label={capture.active ? "Microfone ligado — toque para pausar a escuta" : "Ligar microfone"}
