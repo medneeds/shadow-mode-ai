@@ -10,11 +10,17 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ModoSombraRouteImport } from './routes/modo-sombra'
 import { Route as TreinarRouteImport } from './routes/treinar'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ModoSombraRoute = ModoSombraRouteImport.update({
+  id: '/modo-sombra',
+  path: '/modo-sombra',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TreinarRoute = TreinarRouteImport.update({
@@ -25,27 +31,31 @@ const TreinarRoute = TreinarRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/modo-sombra': typeof ModoSombraRoute
   '/treinar': typeof TreinarRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/modo-sombra': typeof ModoSombraRoute
   '/treinar': typeof TreinarRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/modo-sombra': typeof ModoSombraRoute
   '/treinar': typeof TreinarRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/treinar'
+  fullPaths: '/' | '/modo-sombra' | '/treinar'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/treinar'
-  id: '__root__' | '/' | '/treinar'
+  to: '/' | '/modo-sombra' | '/treinar'
+  id: '__root__' | '/' | '/modo-sombra' | '/treinar'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ModoSombraRoute: typeof ModoSombraRoute
   TreinarRoute: typeof TreinarRoute
 }
 
@@ -56,6 +66,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/modo-sombra': {
+      id: '/modo-sombra'
+      path: '/modo-sombra'
+      fullPath: '/modo-sombra'
+      preLoaderRoute: typeof ModoSombraRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/treinar': {
@@ -70,6 +87,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ModoSombraRoute: ModoSombraRoute,
   TreinarRoute: TreinarRoute,
 }
 export const routeTree = rootRouteImport
