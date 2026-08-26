@@ -448,18 +448,15 @@ function ShadowRoom() {
   const errorNotice = voiceNotice ?? (micFailed ? capture.message : null);
 
   return (
-    <div className="room-backdrop flex min-h-dvh flex-col">
-      <header className="flex items-center justify-center px-5 pt-5">
+    <div className="room-backdrop relative flex min-h-dvh flex-col">
+      {/* Chat discreto que se forma atrás da estação — memória, não interface. */}
+      <AmbientTranscript messages={roomMessages} />
+
+      <header className="relative z-10 flex items-center justify-center px-5 pt-5">
         <p className="eyebrow opacity-60">Modo Sombra</p>
       </header>
 
-      <main className="flex flex-1 flex-col items-center justify-center gap-1 px-5 text-center">
-        {lastTrainee && (
-          <p className="line-clamp-1 max-w-md text-xs text-muted-foreground/40">
-            {lastTrainee.text}
-          </p>
-        )}
-
+      <main className="relative z-10 flex flex-1 flex-col items-center justify-center gap-1 px-5 text-center">
         <p
           aria-live="polite"
           className="max-w-lg font-display text-lg leading-relaxed text-foreground sm:text-xl"
@@ -497,20 +494,16 @@ function ShadowRoom() {
           />
         </PresenceControl>
 
-        <PresenceStatus state={voiceState} className="mt-1" />
-
-
-
-
-
+        <PresenceStatus state={voiceState} className="-mt-1" />
 
         <p
-          className="font-display text-xl tabular-nums text-muted-foreground/70"
+          className="mt-2 font-display text-xl tabular-nums text-muted-foreground/70"
           aria-label={`Tempo restante: ${formatClock(session.remainingSeconds)}`}
         >
           {formatClock(session.remainingSeconds)}
         </p>
       </main>
+
 
       <footer className="safe-bottom px-5 pt-2 sm:px-8">
         {showComposer && (
