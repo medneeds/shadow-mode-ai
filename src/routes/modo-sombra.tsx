@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowUp, Mic, MicOff, Pause, Play, Square, Volume2, VolumeX } from "lucide-react";
 
 import { VoicePresence } from "@/components/shadow/VoicePresence";
+import { PresenceStatus } from "@/components/shadow/PresenceStatus";
+
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { PageSection, SectionHeading } from "@/components/ui/section";
@@ -90,6 +92,8 @@ function ShadowRoom() {
   const canType = session ? traineeCanType(session.config.traineeInputMode) : false;
   const wantsVoiceInput = session ? traineeCanSpeak(session.config.traineeInputMode) : false;
   const wantsVoiceOutput = config.shadowOutputMode === "voice_text";
+  const shadowVoiceOn = wantsVoiceOutput && !audioMuted;
+
 
   const speech = useShadowSpeech();
 
@@ -375,12 +379,17 @@ function ShadowRoom() {
     void capture.start();
   };
 
+  /** Liga/desliga a voz do Sombra de forma explícita (inclusive vindo do modo texto). */
   const toggleAudio = () => {
-    setAudioMuted((prev) => {
-      if (!prev) speech.stop();
-      return !prev;
-    });
+    if (shadowVoiceOn) {
+      speech.stop();
+      setAudioMuted(true);
+      return;
+    }
+    setAudioMuted(false);
+    if (config.shadowOutputMode !== "voice_text") setConfig({ shadowOutputMode: "voice_text" });
   };
+
 
   if (!session) {
     return (
@@ -454,6 +463,12 @@ function ShadowRoom() {
           className="-my-4"
         />
 
+        <PresenceStatus state={voiceState} className="mt-1" />
+
+
+
+
+
         <p
           className="font-display text-xl tabular-nums text-muted-foreground/70"
           aria-label={`Tempo restante: ${formatClock(session.remainingSeconds)}`}
@@ -503,10 +518,11 @@ function ShadowRoom() {
           </form>
         )}
 
-        <div className="mx-auto flex max-w-md items-center justify-center gap-2">
+        <div className="mx-auto flex max-w-md flex-wrap items-center justify-center gap-2">
           {wantsVoiceInput && !voiceInputBroken && (
             <RoomButton
-              label={capture.active ? "Microfone ativo" : "Microfone"}
+              label={capture.active ? "Microfone ligado — toque para pausar a escuta" : "Ligar microfone"}
+              text={capture.active ? "Ouvindo" : "Ligar microfone"}
               onClick={toggleMic}
               active={capture.active}
               pressed={capture.active}
@@ -519,19 +535,22 @@ function ShadowRoom() {
             </RoomButton>
           )}
 
-          {wantsVoiceOutput && availability?.textToSpeech && (
+          {availability?.textToSpeech && (
             <RoomButton
-              label={audioMuted ? "Ativar voz do Sombra" : "Silenciar voz do Sombra"}
+              label={shadowVoiceOn ? "Desligar a voz do Sombra" : "Ativar a voz do Sombra"}
+              text={shadowVoiceOn ? "Voz ligada" : "Ativar voz"}
               onClick={toggleAudio}
-              pressed={audioMuted}
+              active={shadowVoiceOn}
+              pressed={shadowVoiceOn}
             >
-              {audioMuted ? (
-                <VolumeX aria-hidden className="size-5" />
-              ) : (
+              {shadowVoiceOn ? (
                 <Volume2 aria-hidden className="size-5" />
+              ) : (
+                <VolumeX aria-hidden className="size-5" />
               )}
             </RoomButton>
           )}
+
 
           <RoomButton label={paused ? "Retomar" : "Pausar"} onClick={() => (paused ? resumeSession() : pauseSession())}>
             {paused ? (
@@ -574,12 +593,15 @@ function ShadowRoom() {
 
 function RoomButton({
   label,
+  text,
   onClick,
   active,
   pressed,
   children,
 }: {
   label: string;
+  /** Rótulo visível — usado nos controles essenciais (microfone e voz). */
+  text?: string;
   onClick: () => void;
   active?: boolean;
   pressed?: boolean;
@@ -593,13 +615,16 @@ function RoomButton({
       aria-pressed={pressed}
       title={label}
       className={cn(
-        "flex size-12 items-center justify-center rounded-full text-muted-foreground/70 transition-all duration-200",
+        "flex h-12 items-center justify-center gap-2 rounded-full text-muted-foreground/70 transition-all duration-200",
+        text ? "border border-hairline px-4" : "w-12",
         "hover:scale-[1.03] hover:bg-surface-raised/50 hover:text-foreground active:scale-95",
         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss",
-        active && "bg-surface-raised/60 text-foreground",
+        active && "border-foreground/25 bg-surface-raised/60 text-foreground",
       )}
     >
       {children}
+      {text && <span className="text-xs font-medium">{text}</span>}
+
     </button>
   );
 }
