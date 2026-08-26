@@ -74,6 +74,10 @@ function ResultPage() {
           {" · "}
           {shadowSummary(config.shadowOutputMode, config.voicePreference, config.trainerProfile)}
         </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Suas respostas: {traineeSummary(config.traineeInputMode)} · a modalidade não influencia a
+          avaliação clínica.
+        </p>
       </PageSection>
 
       <PageSection className="py-0">
