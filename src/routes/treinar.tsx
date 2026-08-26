@@ -193,6 +193,17 @@ function TrainingSetup() {
   const lastShadow = [...setupMessages].reverse().find((m) => m.role === "shadow");
   const earlier = setupMessages.slice(-4, -1);
   const question = nextSetupQuestion(providedFields);
+  const ready = question === null;
+
+  const micFailedEarly =
+    capture.status === "denied" || capture.status === "error" || capture.status === "unsupported";
+  const canUseVoice = wantsVoiceInput && !(micFailedEarly || availability?.speechToText === false);
+
+  const toggleMic = () => {
+    setVoiceNotice(null);
+    if (capture.active || capture.status === "starting") capture.stop();
+    else void capture.start();
+  };
 
   return (
     <AppShell>
@@ -204,54 +215,52 @@ function TrainingSetup() {
             </p>
           )}
 
-          <VoicePresence
-            state={
-              speech.speaking
-                ? "speaking"
-                : busy
-                  ? "processing"
+          <PresenceControl
+            onTap={() => (ready ? handleStart() : speech.stop())}
+            onDoubleTap={canUseVoice ? toggleMic : undefined}
+            onHoldStart={canUseVoice ? () => void capture.holdStart() : undefined}
+            onHoldEnd={canUseVoice ? (canceled) => capture.holdEnd(canceled) : undefined}
+            getAmplitude={() => capture.getAmplitude()}
+            hint={
+              ready
+                ? "Toque para entrar no Modo Sombra"
+                : canUseVoice
+                  ? capture.active
+                    ? "Ouvindo — toque duplo desliga o microfone"
+                    : "Toque duplo liga o microfone · segure para falar"
+                  : undefined
+            }
+          >
+            <VoicePresence
+              state={
+                speech.speaking
+                  ? "speaking"
+                  : busy
+                    ? "processing"
+                    : capture.active
+                      ? "listening"
+                      : "idle"
+              }
+              getAmplitude={() =>
+                speech.speaking
+                  ? speech.getAmplitude()
                   : capture.active
-                    ? "listening"
-                    : "idle"
-            }
-            getAmplitude={() =>
-              speech.speaking ? speech.getAmplitude() : capture.active ? capture.getAmplitude() : 0
-            }
-          />
+                    ? capture.getAmplitude()
+                    : 0
+              }
+            />
+          </PresenceControl>
 
           <p aria-live="polite" className="mt-2 max-w-lg font-display text-xl leading-relaxed">
             {lastShadow?.text ?? setupOpeningQuestion}
           </p>
-
-          {wantsVoiceInput && !voiceInputBroken && (
-            <button
-              type="button"
-              onClick={() => {
-                setVoiceNotice(null);
-                if (capture.active || capture.status === "starting") capture.stop();
-                else void capture.start();
-              }}
-              aria-label={capture.active ? "Desativar microfone" : "Falar com o Sombra"}
-              aria-pressed={capture.active}
-              title={capture.active ? "Microfone ativo" : "Microfone"}
-              className={cn(
-                "mt-6 flex size-12 items-center justify-center rounded-full text-muted-foreground/70 transition-all duration-200 hover:scale-[1.03] hover:bg-surface-raised/50 hover:text-foreground active:scale-95",
-                capture.active && "bg-surface-raised/60 text-foreground",
-              )}
-            >
-              {capture.active ? (
-                <Mic aria-hidden className="size-5" />
-              ) : (
-                <MicOff aria-hidden className="size-5" />
-              )}
-            </button>
-          )}
 
           {(voiceNotice ?? capture.message) && (
             <p className="mt-3 text-[11px] text-muted-foreground" aria-live="polite">
               {voiceNotice ?? capture.message}
             </p>
           )}
+
 
           <form
             onSubmit={(e) => {
