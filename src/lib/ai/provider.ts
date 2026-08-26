@@ -27,7 +27,7 @@ export type LlmProvider = {
 
 /** Falha de inteligência. Nunca derruba a verdade clínica; ativa fallback. */
 export class LlmUnavailableError extends Error {
-  readonly status?: number;
+  readonly status?: number | undefined;
   constructor(message: string, status?: number) {
     super(message);
     this.name = "LlmUnavailableError";

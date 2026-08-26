@@ -11,7 +11,7 @@ export type ShadowMessage = {
   /** Epoch ms. */
   at: number;
   /** Tempo clínico (segundos) quando aplicável. */
-  clinicalTime?: number;
+  clinicalTime?: number | undefined;
 };
 
 export function createMessage(

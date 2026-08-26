@@ -21,7 +21,7 @@ function modelId(): string {
 }
 
 export function createLlmProvider(): LlmProvider {
-  const apiKey = process.env["LOVABLE_API_KEY"];
+  const apiKey: string = process.env["LOVABLE_API_KEY"] ?? "";
   if (!apiKey) {
     throw new LlmUnavailableError("LOVABLE_API_KEY ausente no ambiente do servidor.");
   }
