@@ -9,7 +9,6 @@
  * O LLM nunca muta PatientState. O Case Engine nunca conhece provedor de IA.
  */
 import { createServerFn } from "@tanstack/react-start";
-import { z } from "zod";
 
 import { referenceCase } from "@/lib/clinical/reference-cases";
 import { applyAction, buildAction } from "@/lib/clinical/clinical-case-engine";
@@ -22,42 +21,17 @@ import {
   interpretationUnavailableReply,
   unintelligibleReply,
 } from "@/lib/shadow/trainer-fallback";
-import { trainerProfileIds } from "@/lib/interpreter/interpretation-schema";
-import { defaultConfig, type TrainingConfig } from "@/lib/training-session";
+import {
+  clinicalTurnSchema,
+  narrateSchema,
+  setupTurnSchema,
+  visibleStateSummary,
+} from "@/lib/shadow/shadow-turn-schemas";
+import type { TrainingConfig } from "@/lib/training-session";
 
-const configSchema = z.object({
-  themeId: z.string(),
-  levelId: z.enum(["basico", "intermediario", "avancado"]),
-  durationId: z.string(),
-  shadowOutputMode: z.enum(["text", "voice_text"]),
-  traineeInputMode: z.enum(["voice", "text", "hybrid"]),
-  voicePreference: z.enum(["female", "male"]),
-  trainerProfile: z.enum(trainerProfileIds),
-});
+type MetaCommandDto = { type: string; value: string | null };
 
-const setupInput = z.object({
-  rawContent: z.string().min(1).max(2000),
-  source: z.enum(["voice", "text"]),
-  config: configSchema,
-  context: z.string().max(4000).optional(),
-});
-
-const turnInput = z.object({
-  rawContent: z.string().min(1).max(2000),
-  source: z.enum(["voice", "text"]),
-  config: configSchema,
-  context: z.string().max(4000).optional(),
-  clinicalTime: z.number().int().min(0),
-  runtime: z.unknown(),
-});
-
-const narrateInput = z.object({
-  facts: z.array(z.string().max(600)).max(8),
-  trainerProfile: z.enum(trainerProfileIds),
-  context: z.string().max(4000).optional(),
-});
-
-function provider(): LlmProvider | null {
+function optionalProvider(): LlmProvider | null {
   try {
     return createLlmProvider();
   } catch {
@@ -65,25 +39,20 @@ function provider(): LlmProvider | null {
   }
 }
 
-function visibleStateSummary(runtime: ClinicalCaseRuntime): string {
-  const v = runtime.patient.vitals;
-  return `consciência=${runtime.patient.consciousness}; via aérea=${runtime.patient.airway}; FC=${v.heartRate}; FR=${v.respiratoryRate}; PA=${v.systolicBP}/${v.diastolicBP}; SpO2=${v.oxygenSaturation}`;
-}
-
-/** Configuração conversacional: uma chamada de LLM, resposta determinística. */
+/** Configuração conversacional: uma chamada de LLM, respostas determinísticas. */
 export const interpretSetupTurn = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => setupInput.parse(data))
+  .inputValidator((data: unknown) => setupTurnSchema.parse(data))
   .handler(async ({ data }) => {
-    const llm = provider();
-    if (!llm) {
-      return {
-        kind: "error" as const,
-        configPatch: {} as Partial<TrainingConfig>,
-        startSession: false,
-        metaCommands: [] as { type: string; value: string | null }[],
-        shadowText: interpretationUnavailableReply,
-      };
-    }
+    const empty = {
+      kind: "error" as const,
+      configPatch: {} as Partial<TrainingConfig>,
+      startSession: false,
+      metaCommands: [] as MetaCommandDto[],
+      shadowText: interpretationUnavailableReply as string | null,
+    };
+
+    const llm = optionalProvider();
+    if (!llm) return empty;
 
     try {
       const result = await interpretInput(llm, referenceCase, {
@@ -108,35 +77,32 @@ export const interpretSetupTurn = createServerFn({ method: "POST" })
         kind: result.kind,
         configPatch: patch,
         startSession: c.startSession,
-        metaCommands: result.metaCommands,
-        shadowText: result.clarificationQuestion ?? null,
+        metaCommands: result.metaCommands as MetaCommandDto[],
+        shadowText: result.clarificationQuestion,
       };
     } catch {
-      return {
-        kind: "error" as const,
-        configPatch: {} as Partial<TrainingConfig>,
-        startSession: false,
-        metaCommands: [] as { type: string; value: string | null }[],
-        shadowText: interpretationUnavailableReply,
-      };
+      return empty;
     }
   });
 
 /** Estação ativa: interpretação clínica + motor determinístico + fraseado. */
 export const runClinicalTurn = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => turnInput.parse(data))
+  .inputValidator((data: unknown) => clinicalTurnSchema.parse(data))
   .handler(async ({ data }) => {
     const runtime = data.runtime as ClinicalCaseRuntime;
-    const llm = provider();
+    const base = {
+      runtime,
+      actions: [] as { actionId: string }[],
+      metaCommands: [] as MetaCommandDto[],
+      facts: [] as string[],
+    };
 
+    const llm = optionalProvider();
     if (!llm) {
       return {
+        ...base,
         kind: "error" as const,
-        runtime,
-        actions: [] as { actionId: string }[],
-        metaCommands: [] as { type: string; value: string | null }[],
-        facts: [] as string[],
-        shadowText: interpretationUnavailableReply,
+        shadowText: interpretationUnavailableReply as string | null,
         fallback: true,
       };
     }
@@ -153,12 +119,9 @@ export const runClinicalTurn = createServerFn({ method: "POST" })
       });
     } catch {
       return {
+        ...base,
         kind: "error" as const,
-        runtime,
-        actions: [] as { actionId: string }[],
-        metaCommands: [] as { type: string; value: string | null }[],
-        facts: [] as string[],
-        shadowText: interpretationUnavailableReply,
+        shadowText: interpretationUnavailableReply as string | null,
         fallback: true,
       };
     }
@@ -166,11 +129,9 @@ export const runClinicalTurn = createServerFn({ method: "POST" })
     // Meta comandos nunca entram no motor clínico nem na pontuação.
     if (interpretation.kind === "meta_command") {
       return {
+        ...base,
         kind: "meta_command" as const,
-        runtime,
-        actions: [] as { actionId: string }[],
-        metaCommands: interpretation.metaCommands,
-        facts: [] as string[],
+        metaCommands: interpretation.metaCommands as MetaCommandDto[],
         shadowText: null as string | null,
         fallback: false,
       };
@@ -181,9 +142,13 @@ export const runClinicalTurn = createServerFn({ method: "POST" })
       const facts: string[] = [];
       for (const action of interpretation.actions) {
         const built = buildAction(referenceCase, next, action.actionId, "trainee", Date.now());
-        const result = applyAction(next, { ...built, clinicalTime: data.clinicalTime }, referenceCase);
+        const result = applyAction(
+          next,
+          { ...built, clinicalTime: data.clinicalTime },
+          referenceCase,
+        );
         next = result.runtime;
-        result.newEvents.forEach((e) => facts.push(e.fact));
+        result.newEvents.forEach((event) => facts.push(event.fact));
       }
 
       const composed = await composeShadowResponse(llm, {
@@ -197,44 +162,38 @@ export const runClinicalTurn = createServerFn({ method: "POST" })
         kind: "clinical_input" as const,
         runtime: next,
         actions: interpretation.actions.map((a) => ({ actionId: a.actionId })),
-        metaCommands: [] as { type: string; value: string | null }[],
+        metaCommands: [] as MetaCommandDto[],
         facts,
-        shadowText: composed.text,
+        shadowText: composed.text as string | null,
         fallback: composed.fallback,
       };
     }
 
-    // Ambíguo / sem ação reconhecida: esclarecer, nunca inferir conduta de alto impacto.
-    const clarification = interpretation.clarificationQuestion ?? unintelligibleReply;
+    // Ambíguo: esclarecer a intenção, nunca inferir conduta de alto impacto.
     const composed = await composeShadowResponse(llm, {
       facts: [],
       profile: data.config.trainerProfile,
-      clarification,
+      clarification: interpretation.clarificationQuestion ?? unintelligibleReply,
       context: data.context,
       traineeInput: data.rawContent,
     });
 
     return {
+      ...base,
       kind: "ambiguous" as const,
-      runtime,
-      actions: [] as { actionId: string }[],
-      metaCommands: [] as { type: string; value: string | null }[],
-      facts: [] as string[],
-      shadowText: composed.text,
+      shadowText: composed.text as string | null,
       fallback: composed.fallback,
     };
   });
 
 /** Fatos gerados pelo tempo (deterioração, resultados) ganham tom do perfil. */
 export const narrateClinicalEvents = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => narrateInput.parse(data))
+  .inputValidator((data: unknown) => narrateSchema.parse(data))
   .handler(async ({ data }) => {
-    const composed = await composeShadowResponse(provider(), {
+    const composed = await composeShadowResponse(optionalProvider(), {
       facts: data.facts,
       profile: data.trainerProfile,
       context: data.context,
     });
     return { shadowText: composed.text, fallback: composed.fallback };
   });
-
-export const shadowDefaultConfig = defaultConfig;
