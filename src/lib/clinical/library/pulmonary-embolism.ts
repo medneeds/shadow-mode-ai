@@ -124,7 +124,7 @@ export const pulmonaryEmbolismCase = defineCase({
         },
         reassess_vitals: {
           immediateFact: "Você reafere os sinais vitais e reavalia o esforço respiratório.",
-          eventType: "reassessment_result",
+          eventType: "vital_signs_change",
         },
         request_specialist: {
           immediateFact: "A equipe de terapia intensiva é acionada para avaliação conjunta.",
@@ -236,7 +236,7 @@ export const pulmonaryEmbolismCase = defineCase({
     {
       id: "obj-imagem",
       label: "Confirmar o diagnóstico com imagem",
-      domain: "investigation",
+      domain: "investigations",
       satisfiedByAnyOf: ["request_chest_ct", "request_bedside_ultrasound"],
       critical: false,
       recommendedWindowSeconds: 600,

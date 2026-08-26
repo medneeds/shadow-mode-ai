@@ -123,7 +123,7 @@ export const anaphylaxisCase = defineCase({
         },
         reassess_vitals: {
           immediateFact: "Você reafere os sinais vitais e reavalia a via aérea.",
-          eventType: "reassessment_result",
+          eventType: "vital_signs_change",
         },
         disposition_observation: {
           immediateFact: "Paciente mantido em observação monitorizada por risco de reação bifásica.",

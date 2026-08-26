@@ -138,7 +138,7 @@ export const septicShockCase = defineCase({
         },
         reassess_vitals: {
           immediateFact: "Você reafere sinais vitais e reavalia a perfusão periférica.",
-          eventType: "reassessment_result",
+          eventType: "vital_signs_change",
         },
         request_specialist: {
           immediateFact: "A terapia intensiva é acionada para avaliação de vaga.",
@@ -228,7 +228,7 @@ export const septicShockCase = defineCase({
         statePatch: { addTags: ["antibiótico tardio"] },
         branchId: "branch-deterioracao",
         source: "omission_trigger",
-        eventType: "clinical_deterioration",
+        eventType: "physiologic_deterioration",
       },
     ),
   ],
