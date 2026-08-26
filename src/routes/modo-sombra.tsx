@@ -160,7 +160,11 @@ function ShadowRoom() {
             label={paused ? "Retomar estação" : "Pausar estação"}
             onClick={() => (paused ? resumeSession() : pauseSession())}
           >
-            {paused ? <Play aria-hidden className="size-5" /> : <Pause aria-hidden className="size-5" />}
+            {paused ? (
+              <Play aria-hidden className="size-5" />
+            ) : (
+              <Pause aria-hidden className="size-5" />
+            )}
           </RoomButton>
 
           <RoomButton label="Encerrar estação" onClick={() => setConfirmOpen(true)}>

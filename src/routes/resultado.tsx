@@ -5,13 +5,7 @@ import { Button } from "@/components/ui/button";
 import { MeterRow, PageSection, SectionHeading } from "@/components/ui/section";
 import { mockCompetencies } from "@/lib/shadow-content";
 import { useTrainingSession } from "@/lib/session-store";
-import {
-  durationLabel,
-  levelLabel,
-  mockCase,
-  mockScore,
-  themeLabel,
-} from "@/lib/training-session";
+import { durationLabel, levelLabel, mockCase, mockScore, themeLabel } from "@/lib/training-session";
 
 export const Route = createFileRoute("/resultado")({
   head: () => ({
