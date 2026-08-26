@@ -68,7 +68,14 @@ export function buildInterpretationJsonSchema(allowedActionIds: string[]): Recor
   return {
     type: "object",
     additionalProperties: false,
-    required: ["kind", "configuration", "metaCommands", "actions", "clarificationQuestion", "reason"],
+    required: [
+      "kind",
+      "configuration",
+      "metaCommands",
+      "actions",
+      "clarificationQuestion",
+      "reason",
+    ],
     properties: {
       kind: {
         type: "string",

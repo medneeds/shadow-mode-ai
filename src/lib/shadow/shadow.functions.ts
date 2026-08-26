@@ -17,10 +17,7 @@ import { interpretInput } from "@/lib/interpreter/interpret.server";
 import { createLlmProvider } from "@/lib/ai/lovable-gateway.server";
 import type { LlmProvider } from "@/lib/ai/provider";
 import { composeShadowResponse } from "@/lib/shadow/trainer-engine.server";
-import {
-  interpretationUnavailableReply,
-  unintelligibleReply,
-} from "@/lib/shadow/trainer-fallback";
+import { interpretationUnavailableReply, unintelligibleReply } from "@/lib/shadow/trainer-fallback";
 import {
   clinicalTurnSchema,
   narrateSchema,

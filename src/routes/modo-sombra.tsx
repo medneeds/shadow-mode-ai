@@ -332,7 +332,9 @@ function ShadowRoom() {
         <div className="mx-auto flex max-w-md items-center justify-center gap-3">
           {canSpeak && (
             <RoomButton
-              label={muted ? "Microfone desativado, ativar microfone" : "Microfone ativo, desativar"}
+              label={
+                muted ? "Microfone desativado, ativar microfone" : "Microfone ativo, desativar"
+              }
               onClick={() => setMuted((m) => !m)}
               active={!muted}
               pressed={muted}

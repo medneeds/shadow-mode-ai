@@ -45,14 +45,8 @@ export const Route = createFileRoute("/treinar")({
 
 function TrainingSetup() {
   const navigate = useNavigate();
-  const {
-    config,
-    setConfig,
-    providedFields,
-    startSession,
-    setupMessages,
-    addSetupMessage,
-  } = useTrainingSession();
+  const { config, setConfig, providedFields, startSession, setupMessages, addSetupMessage } =
+    useTrainingSession();
   const interpret = useServerFn(interpretSetupTurn);
 
   const [draft, setDraft] = useState("");
@@ -90,7 +84,9 @@ function TrainingSetup() {
       const patchedFields = Object.keys(result.configPatch);
       if (patchedFields.length > 0) setConfig(result.configPatch);
 
-      const provided = Array.from(new Set([...providedFields, ...patchedFields])) as typeof providedFields;
+      const provided = Array.from(
+        new Set([...providedFields, ...patchedFields]),
+      ) as typeof providedFields;
       const question = nextSetupQuestion(provided);
 
       if (result.shadowText) {
@@ -265,8 +261,8 @@ function TrainingSetup() {
                 ))}
               </div>
               <p className="mt-3 max-w-xl text-xs leading-relaxed text-muted-foreground">
-                O perfil muda o tom e o ritmo. Não altera o caso, a conduta correta nem a avaliação —
-                e o Sombra nunca dá dicas durante a estação.
+                O perfil muda o tom e o ritmo. Não altera o caso, a conduta correta nem a avaliação
+                — e o Sombra nunca dá dicas durante a estação.
               </p>
             </fieldset>
 
@@ -313,8 +309,8 @@ function TrainingSetup() {
                 ))}
               </div>
               <p className="mt-3 max-w-xl text-xs leading-relaxed text-muted-foreground">
-                Falar ou digitar não muda sua avaliação. A devolutiva considera conteúdo, prioridade,
-                tempo e sequência — nunca a forma de responder.
+                Falar ou digitar não muda sua avaliação. A devolutiva considera conteúdo,
+                prioridade, tempo e sequência — nunca a forma de responder.
               </p>
             </fieldset>
           </div>

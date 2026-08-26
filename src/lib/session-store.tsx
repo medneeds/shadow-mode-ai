@@ -16,11 +16,7 @@ import {
   type TrainingConfig,
   type TrainingSession,
 } from "./training-session";
-import {
-  createTraineeInput,
-  type TraineeInput,
-  type TraineeInputSource,
-} from "./trainee-input";
+import { createTraineeInput, type TraineeInput, type TraineeInputSource } from "./trainee-input";
 import { advanceClinicalTime, initializeCase } from "./clinical/clinical-case-engine";
 import type { ClinicalCaseRuntime } from "./clinical/clinical-case-types";
 import { referenceCase } from "./clinical/reference-cases";

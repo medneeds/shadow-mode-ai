@@ -49,11 +49,7 @@ export type RecognizedConfigurationIntent = {
 /** Campos mínimos para uma estação poder começar. */
 export type RequiredConfigField = "themeId" | "levelId" | "durationId";
 
-export const requiredConfigFields: RequiredConfigField[] = [
-  "themeId",
-  "levelId",
-  "durationId",
-];
+export const requiredConfigFields: RequiredConfigField[] = ["themeId", "levelId", "durationId"];
 
 /**
  * Configuração em construção durante a conversa. Campos ausentes são
@@ -90,9 +86,7 @@ export function applyConfigurationIntents(
 }
 
 /** O que ainda falta perguntar. Vazio = pare de perguntar configuração. */
-export function missingRequiredFields(
-  config: PartialTrainingConfig,
-): RequiredConfigField[] {
+export function missingRequiredFields(config: PartialTrainingConfig): RequiredConfigField[] {
   return requiredConfigFields.filter((field) => config[field] == null);
 }
 
