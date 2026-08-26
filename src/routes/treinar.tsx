@@ -304,25 +304,32 @@ function TrainingSetup() {
             </button>
           </form>
 
-          {/* Configuração é contexto, não um painel de ajustes. */}
-          <div className="mt-10 flex flex-col items-center gap-1">
-            <p className="font-display text-sm text-foreground">{configSummary(config)}</p>
-            <p className="text-xs text-muted-foreground/70">{configSecondaryLine(config)}</p>
-            <div className="mt-5 flex items-center gap-4">
-              <Button size="sm" onClick={handleStart} disabled={busy}>
-                Entrar no Modo Sombra
-              </Button>
-              <button
-                type="button"
-                onClick={() => setShowAdjust((v) => !v)}
-                aria-expanded={showAdjust}
-                className="flex items-center gap-1.5 rounded-md px-1 text-xs text-muted-foreground/70 transition-colors hover:text-foreground"
-              >
-                <SlidersHorizontal aria-hidden className="size-3.5" />
-                {showAdjust ? "Ocultar" : "Ajustar"}
-              </button>
-            </div>
+          {/* Configuração é contexto: chips do que já foi dito + atalhos. */}
+          <div className="mt-8 flex flex-col items-center gap-4">
+            <SetupChips config={config} provided={providedFields} onPick={setConfig} />
+
+            {ready ? (
+              <div className="flex flex-col items-center gap-2">
+                <Button size="sm" onClick={handleStart} disabled={busy}>
+                  Entrar no Modo Sombra
+                </Button>
+                <p className="text-[11px] text-muted-foreground/60">{configSecondaryLine(config)}</p>
+              </div>
+            ) : (
+              <p className="text-[11px] text-muted-foreground/60">{configSummary(config)}</p>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setShowAdjust((v) => !v)}
+              aria-expanded={showAdjust}
+              className="flex items-center gap-1.5 rounded-md px-1 text-xs text-muted-foreground/60 transition-colors hover:text-foreground"
+            >
+              <SlidersHorizontal aria-hidden className="size-3.5" />
+              {showAdjust ? "Ocultar ajustes" : "Mais ajustes"}
+            </button>
           </div>
+
         </div>
       </PageSection>
 
