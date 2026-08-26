@@ -68,6 +68,10 @@ export const interpretationSchema = z.object({
     z.object({
       actionId: z.string(),
       sourceExcerpt: z.string().nullable(),
+      /** Confiança semântica (0..1). Baixa confiança + alto impacto = esclarecer. */
+      confidence: z.number().min(0).max(1),
+      /** Valor numérico/dose finalmente pretendido, quando dito (ex.: "250 ml"). */
+      value: z.string().nullable(),
     }),
   ),
   clarificationQuestion: z.string().nullable(),
