@@ -75,6 +75,7 @@ export const defaultConfig: TrainingConfig = {
   shadowOutputMode: "voice_text",
   traineeInputMode: "hybrid",
   voicePreference: "female",
+  speechRate: "normal",
   trainerProfile: "assertive",
 };
 
