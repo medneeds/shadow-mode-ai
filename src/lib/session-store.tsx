@@ -234,7 +234,7 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
     const interval = window.setInterval(() => {
       setRuntimeState((prevRuntime) => {
         if (!prevRuntime) return prevRuntime;
-        const result = advanceClinicalTime(prevRuntime, 1, referenceCase);
+        const result = advanceClinicalTime(prevRuntime, 1, caseRef.current);
         if (result.newEvents.length > 0) {
           setPendingFacts((prev) => [...prev, ...result.newEvents.map((e) => e.fact)]);
         }
