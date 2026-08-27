@@ -10,7 +10,6 @@ import { ComposerMic } from "@/components/shadow/ComposerMic";
 import { AmbientTranscript } from "@/components/shadow/AmbientTranscript";
 import { GuidanceActions } from "@/components/shadow/GuidanceActions";
 
-
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { PageSection, SectionHeading } from "@/components/ui/section";
@@ -25,7 +24,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useTrainingSession } from "@/lib/session-store";
-import { formatClock, mockCase } from "@/lib/training-session";
+import { assertSessionIntegrity, formatClock, type TrainingConfig } from "@/lib/training-session";
 import { traineeCanSpeak, traineeCanType } from "@/lib/shadow-trainer";
 import { metaCommandLabels, type MetaCommandType } from "@/lib/interpreter/meta-command";
 import { recentContext } from "@/lib/shadow/conversation";
@@ -91,20 +90,45 @@ function ShadowRoom() {
   const [voiceNotice, setVoiceNotice] = useState<string | null>(null);
   const [audioMuted, setAudioMuted] = useState(false);
   const [availability, setAvailability] = useState<VoiceAvailability | null>(null);
+  const [failedTurn, setFailedTurn] = useState<{
+    source: TraineeInputSource;
+    content: string;
+    inputId: string;
+    provenance?: AssistanceProvenance;
+  } | null>(null);
   const openingRef = useRef<string | null>(null);
+  const openingSpeechRef = useRef<string | null>(null);
   const guidanceRef = useRef<ActiveGuidance | null>(null);
   const busyRef = useRef(false);
   const turnRef = useRef(0);
+  const transcriptionRef = useRef<AbortController | null>(null);
 
   const status = session?.status;
   const voiceStateFromSession = session?.voiceState ?? "idle";
   const clinicalTime = session ? session.durationSeconds - session.remainingSeconds : 0;
+  const qaEnabled =
+    import.meta.env.DEV &&
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).has("qa");
 
-  const canType = session ? traineeCanType(session.config.traineeInputMode) : false;
-  const wantsVoiceInput = session ? traineeCanSpeak(session.config.traineeInputMode) : false;
-  const wantsVoiceOutput = config.shadowOutputMode === "voice_text";
+  const sessionConfig = session?.config;
+  /** Clínica usa exclusivamente `session.config`; preferências abaixo permanecem ao vivo. */
+  const experienceConfig: TrainingConfig | null = sessionConfig
+    ? {
+        ...sessionConfig,
+        shadowOutputMode: config.shadowOutputMode,
+        traineeInputMode: config.traineeInputMode,
+        voicePreference: config.voicePreference,
+        speechRate: config.speechRate,
+        trainerProfile: config.trainerProfile,
+      }
+    : null;
+  const canType = experienceConfig ? traineeCanType(experienceConfig.traineeInputMode) : false;
+  const wantsVoiceInput = experienceConfig
+    ? traineeCanSpeak(experienceConfig.traineeInputMode)
+    : false;
+  const wantsVoiceOutput = experienceConfig?.shadowOutputMode === "voice_text";
   const shadowVoiceOn = wantsVoiceOutput && !audioMuted;
-
 
   /**
    * Contexto de assistência de QUALQUER entrada: registra o andaime visível
@@ -113,12 +137,14 @@ function ShadowRoom() {
   const currentProvenance = useCallback((): AssistanceProvenance => {
     const active = guidanceRef.current;
     return {
-      autonomyMode: autonomyForLevel(caseDefinition.level),
+      autonomyMode: autonomyForLevel(
+        caseDefinition?.level ?? sessionConfig?.levelId ?? "intermediario",
+      ),
       ...(active ? { guidancePointId: active.pointId } : {}),
       visibleOptionCount: active?.visibleOptionCount ?? 0,
       usedGuidedOption: false,
     };
-  }, [caseDefinition.level]);
+  }, [caseDefinition?.level, sessionConfig?.levelId]);
 
   const speech = useShadowSpeech();
 
@@ -134,7 +160,6 @@ function ShadowRoom() {
     return () => controller.abort();
   }, [wantsVoiceInput]);
 
-
   /**
    * Fala o texto CANÔNICO já exibido. speechText é a MESMA resposta, apenas
    * reescrita para soar natural na voz (unidades, siglas) — nunca outro conteúdo.
@@ -147,8 +172,8 @@ function ShadowRoom() {
       const ok = await speech.speak({
         turnId: String(turnId),
         text: speechText || toSpeechText(text),
-        voicePreference: config.voicePreference,
-        speechRate: config.speechRate,
+        voicePreference: experienceConfig?.voicePreference ?? "female",
+        speechRate: experienceConfig?.speechRate ?? "normal",
       });
       if (!ok && turnRef.current === turnId) setVoiceNotice(voiceMessages.ttsFailed);
       if (turnRef.current === turnId) setVoiceState("listening");
@@ -158,8 +183,8 @@ function ShadowRoom() {
       audioMuted,
       availability?.textToSpeech,
       speech,
-      config.voicePreference,
-      config.speechRate,
+      experienceConfig?.voicePreference,
+      experienceConfig?.speechRate,
       setVoiceState,
     ],
   );
@@ -224,14 +249,30 @@ function ShadowRoom() {
     async (
       source: TraineeInputSource,
       content: string,
-      assist?: { forcedActionIds?: string[]; provenance?: AssistanceProvenance },
+      assist?: {
+        forcedActionIds?: string[];
+        provenance?: AssistanceProvenance;
+        existingInputId?: string;
+      },
     ) => {
       const text = content.trim();
       if (!text || busyRef.current) return;
       const current = session;
-      if (!current || current.status !== "active" || !runtime) return;
+      if (
+        !current ||
+        current.status !== "active" ||
+        !runtime ||
+        !caseDefinition ||
+        caseDefinition.id !== current.caseId ||
+        runtime.caseId !== current.caseId
+      )
+        return;
+      if (import.meta.env.DEV) assertSessionIntegrity(current, caseDefinition, runtime);
 
-      const input = submitTraineeInput(source, text, assist?.provenance);
+      const input = assist?.existingInputId
+        ? (current.traineeInputs.find((candidate) => candidate.id === assist.existingInputId) ??
+          null)
+        : submitTraineeInput(source, text, assist?.provenance);
       if (!input) return;
 
       const turnId = turnRef.current + 1;
@@ -241,7 +282,8 @@ function ShadowRoom() {
       busyRef.current = true;
       setBusy(true);
       setNotice(null);
-      addRoomMessage("trainee", text, clinicalTime);
+      setFailedTurn(null);
+      if (!assist?.existingInputId) addRoomMessage("trainee", text, clinicalTime);
       setVoiceState("processing");
       markTurn(String(turnId), "transcriptReady");
 
@@ -250,13 +292,14 @@ function ShadowRoom() {
           data: {
             rawContent: text,
             source,
-            config,
+            config: {
+              ...current.config,
+              trainerProfile: experienceConfig?.trainerProfile ?? current.config.trainerProfile,
+            },
             context: recentContext(roomMessages),
             clinicalTime,
             runtime,
-            ...(assist?.forcedActionIds?.length
-              ? { forcedActionIds: assist.forcedActionIds }
-              : {}),
+            ...(assist?.forcedActionIds?.length ? { forcedActionIds: assist.forcedActionIds } : {}),
           },
         });
 
@@ -276,11 +319,19 @@ function ShadowRoom() {
         }
       } catch {
         if (turnRef.current === turnId) {
-          addRoomMessage("shadow", "Não consegui processar agora. Pode repetir?", clinicalTime);
+          setFailedTurn({
+            source,
+            content: text,
+            inputId: input.id,
+            ...(assist?.provenance ? { provenance: assist.provenance } : {}),
+          });
+          setNotice("Não consegui processar agora.");
         }
       } finally {
-        busyRef.current = false;
-        setBusy(false);
+        if (turnRef.current === turnId) {
+          busyRef.current = false;
+          setBusy(false);
+        }
         reportTurn(String(turnId));
         if (turnRef.current === turnId) setVoiceState("listening");
       }
@@ -288,6 +339,7 @@ function ShadowRoom() {
     [
       session,
       runtime,
+      caseDefinition,
       submitTraineeInput,
       recordInterpretation,
       speech,
@@ -295,7 +347,7 @@ function ShadowRoom() {
       clinicalTime,
       setVoiceState,
       runTurn,
-      config,
+      experienceConfig?.trainerProfile,
       roomMessages,
       setRuntime,
       applyMetaCommands,
@@ -304,8 +356,12 @@ function ShadowRoom() {
   );
 
   /* --- andaime autoral: 3 (básico), até 5 (intermediário), 0 (avançado) --- */
-  const autonomyMode = autonomyForLevel(caseDefinition.level);
-  const guidance = resolveActiveGuidance(caseDefinition, runtime, autonomyMode);
+  const autonomyMode = autonomyForLevel(
+    caseDefinition?.level ?? sessionConfig?.levelId ?? "intermediario",
+  );
+  const guidance = caseDefinition
+    ? resolveActiveGuidance(caseDefinition, runtime, autonomyMode)
+    : null;
   guidanceRef.current = guidance;
 
   /**
@@ -333,30 +389,44 @@ function ShadowRoom() {
     async (audio: Blob) => {
       if (busyRef.current) return;
       setVoiceState("processing");
-      const result = await transcribeUtterance(audio).catch(() => ({ error: "stt_failed" }));
+      transcriptionRef.current?.abort();
+      const controller = new AbortController();
+      transcriptionRef.current = controller;
+      markTurn(`stt-${turnRef.current + 1}`, "speechEnd");
+      const result = await transcribeUtterance(audio, controller.signal).catch(() => ({
+        error: "stt_failed",
+      }));
+      if (
+        controller.signal.aborted ||
+        transcriptionRef.current !== controller ||
+        status !== "active"
+      )
+        return;
       if ("error" in result) {
         setVoiceNotice(
-          result.error === "voice_not_configured" ? voiceMessages.notConfigured : voiceMessages.sttFailed,
+          result.error === "voice_not_configured"
+            ? voiceMessages.notConfigured
+            : voiceMessages.sttFailed,
         );
         setVoiceState("listening");
         return;
       }
       if (!result.text.trim()) {
+        setVoiceNotice("Não consegui entender sua fala. Você pode tentar novamente ou digitar.");
         setVoiceState("listening");
         return;
       }
       setVoiceNotice(null);
       await processTurn("voice", result.text, { provenance: currentProvenance() });
     },
-    [processTurn, setVoiceState, currentProvenance],
+    [processTurn, setVoiceState, currentProvenance, status],
   );
 
   /** Barge-in: a fala do trainee interrompe o áudio do Sombra imediatamente. */
   const handleSpeechStart = useCallback(() => {
-    if (speech.speaking) {
-      speech.stop();
-      setVoiceState("listening");
-    }
+    turnRef.current += 1;
+    speech.stop();
+    setVoiceState("listening");
   }, [speech, setVoiceState]);
 
   const capture = useVoiceCapture({
@@ -365,22 +435,42 @@ function ShadowRoom() {
     suspended: busy || status !== "active",
   });
 
-  // Abertura: o Sombra apresenta o cenário e passa a ouvir.
+  // A abertura é adicionada uma vez e só é falada quando a voz estiver disponível.
   useEffect(() => {
-    if (!session || openingRef.current === session.id) return;
-    openingRef.current = session.id;
-    addRoomMessage("shadow", mockCase.opening, 0);
-    const turnId = turnRef.current + 1;
-    turnRef.current = turnId;
-    void speakShadow(turnId, mockCase.opening);
-    const t = window.setTimeout(() => setVoiceState("listening"), 3200);
-    return () => window.clearTimeout(t);
+    if (!session || !caseDefinition || session.caseId !== caseDefinition.id) return;
+    if (openingRef.current !== session.id) {
+      openingRef.current = session.id;
+      addRoomMessage("shadow", caseDefinition.opening, 0);
+    }
+    if (
+      openingSpeechRef.current !== session.id &&
+      wantsVoiceOutput &&
+      !audioMuted &&
+      availability?.textToSpeech
+    ) {
+      openingSpeechRef.current = session.id;
+      const turnId = turnRef.current + 1;
+      turnRef.current = turnId;
+      void speakShadow(turnId, caseDefinition.opening).finally(() => {
+        if (turnRef.current === turnId) setVoiceState("listening");
+      });
+    } else if (!wantsVoiceOutput || audioMuted || availability?.textToSpeech === false) {
+      setVoiceState("listening");
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.id]);
+  }, [
+    session?.id,
+    session?.caseId,
+    caseDefinition,
+    availability?.textToSpeech,
+    wantsVoiceOutput,
+    audioMuted,
+  ]);
 
   // Conclusão (manual ou automática) leva à devolutiva. Nenhum áudio permanece.
   useEffect(() => {
     if (status !== "finished") return;
+    transcriptionRef.current?.abort();
     speech.stop();
     capture.stop();
     void navigate({ to: "/resultado" });
@@ -390,6 +480,7 @@ function ShadowRoom() {
   // Pausa da estação também silencia captura e áudio (pausa ≠ barge-in).
   useEffect(() => {
     if (status === "paused") {
+      transcriptionRef.current?.abort();
       speech.stop();
       capture.stop();
     }
@@ -404,7 +495,11 @@ function ShadowRoom() {
     const turnId = turnRef.current + 1;
     turnRef.current = turnId;
     void narrate({
-      data: { facts, trainerProfile: config.trainerProfile, context: recentContext(roomMessages) },
+      data: {
+        facts,
+        trainerProfile: experienceConfig?.trainerProfile ?? "assertive",
+        context: recentContext(roomMessages),
+      },
     })
       .then((result) => {
         if (turnRef.current !== turnId) return;
@@ -429,12 +524,15 @@ function ShadowRoom() {
 
   const handleFinish = () => {
     setConfirmOpen(false);
+    turnRef.current += 1;
+    transcriptionRef.current?.abort();
     speech.stop();
     capture.stop();
     finishSession();
   };
 
   const toggleMic = () => {
+    if (status !== "active") return;
     setVoiceNotice(null);
     if (capture.active || capture.status === "starting") {
       capture.stop();
@@ -455,16 +553,20 @@ function ShadowRoom() {
     setVoiceNotice(availability?.textToSpeech === false ? voiceMessages.notConfigured : null);
   };
 
-
-
-  if (!session) {
+  if (
+    !session ||
+    !caseDefinition ||
+    !runtime ||
+    caseDefinition.id !== session.caseId ||
+    runtime.caseId !== session.caseId
+  ) {
     return (
       <AppShell>
         <PageSection>
           <SectionHeading
             eyebrow="Modo Sombra"
-            title="Nenhuma estação configurada"
-            description="Configure seu treino antes de entrar no Modo Sombra."
+            title="Estação indisponível"
+            description="Configure uma nova estação antes de entrar no Modo Sombra."
           />
           <div className="mt-8">
             <Button asChild size="lg">
@@ -478,7 +580,6 @@ function ShadowRoom() {
 
   const paused = status === "paused";
   const lastShadow = [...roomMessages].reverse().find((m) => m.role === "shadow");
-  
 
   const micFailed =
     capture.status === "denied" || capture.status === "error" || capture.status === "unsupported";
@@ -569,7 +670,6 @@ function ShadowRoom() {
         )}
       </main>
 
-
       <footer className="safe-bottom relative z-10 px-5 pt-2 sm:px-8">
         {showComposer && (
           <form
@@ -622,7 +722,9 @@ function ShadowRoom() {
         <div className="mx-auto flex max-w-md flex-wrap items-center justify-center gap-2 lg:max-w-2xl">
           {wantsVoiceInput && !voiceInputBroken && (
             <RoomButton
-              label={capture.active ? "Microfone ligado — toque para pausar a escuta" : "Ligar microfone"}
+              label={
+                capture.active ? "Microfone ligado — toque para pausar a escuta" : "Ligar microfone"
+              }
               text={capture.active ? "Ouvindo" : "Ligar microfone"}
               onClick={toggleMic}
               active={capture.active}
@@ -653,9 +755,10 @@ function ShadowRoom() {
             </RoomButton>
           )}
 
-
-
-          <RoomButton label={paused ? "Retomar" : "Pausar"} onClick={() => (paused ? resumeSession() : pauseSession())}>
+          <RoomButton
+            label={paused ? "Retomar" : "Pausar"}
+            onClick={() => (paused ? resumeSession() : pauseSession())}
+          >
             {paused ? (
               <Play aria-hidden className="size-5" />
             ) : (
@@ -674,6 +777,20 @@ function ShadowRoom() {
             {errorNotice ?? notice}
           </p>
         )}
+        {failedTurn && status === "active" && !busy && (
+          <button
+            type="button"
+            className="mx-auto mt-2 block text-xs text-foreground underline underline-offset-4"
+            onClick={() =>
+              void processTurn(failedTurn.source, failedTurn.content, {
+                existingInputId: failedTurn.inputId,
+                ...(failedTurn.provenance ? { provenance: failedTurn.provenance } : {}),
+              })
+            }
+          >
+            Tentar novamente
+          </button>
+        )}
       </footer>
 
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
@@ -690,6 +807,20 @@ function ShadowRoom() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {qaEnabled && (
+        <aside className="fixed bottom-2 left-2 z-50 max-w-[calc(100vw-1rem)] rounded bg-black/80 p-2 font-mono text-[10px] text-white">
+          caso {caseDefinition.id} · {caseDefinition.scoring.caseVersion} · nível{" "}
+          {session.config.levelId}
+          <br />
+          duração {session.durationSeconds}s · restante {session.remainingSeconds}s · clínico{" "}
+          {runtime.elapsedClinicalSeconds}s
+          <br />
+          guia {guidance?.pointId ?? "—"} ({guidance?.visibleOptionCount ?? 0}) · voz {voiceState}
+          <br />
+          STT {String(availability?.speechToText)} · TTS {String(availability?.textToSpeech)} ·
+          ocupado {String(busy)} · turno {turnRef.current}
+        </aside>
+      )}
     </div>
   );
 }
@@ -727,7 +858,6 @@ function RoomButton({
     >
       {children}
       {text && <span className="text-xs font-medium">{text}</span>}
-
     </button>
   );
 }
