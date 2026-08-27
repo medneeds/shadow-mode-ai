@@ -424,6 +424,7 @@ function ShadowRoom() {
 
   /** Barge-in: a fala do trainee interrompe o áudio do Sombra imediatamente. */
   const handleSpeechStart = useCallback(() => {
+    if (!speech.active) return;
     turnRef.current += 1;
     speech.stop();
     setVoiceState("listening");
