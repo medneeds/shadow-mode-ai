@@ -49,7 +49,9 @@ function ResultPage() {
   const completed = session?.completed ? session : lastCompleted;
 
   const result = useMemo<CompletedTrainingResult | null>(() => {
-    if (!completed || !completed.completed || !lastRuntime) return null;
+    if (!completed || !completed.completed || !lastRuntime || !lastCaseDefinition) return null;
+    if (lastRuntime.caseId !== completed.caseId || lastCaseDefinition.id !== completed.caseId)
+      return null;
     return buildCompletedResult(lastCaseDefinition, lastRuntime, completed);
   }, [completed, lastRuntime, lastCaseDefinition]);
 
@@ -81,7 +83,9 @@ function ResultView({ result }: { result: CompletedTrainingResult }) {
   const speech = useShadowSpeech();
 
   // A avaliação determinística é a fonte da verdade; o texto começa determinístico.
-  const [debriefing, setDebriefing] = useState<Debriefing>(() => deterministicDebriefing(evaluation));
+  const [debriefing, setDebriefing] = useState<Debriefing>(() =>
+    deterministicDebriefing(evaluation),
+  );
 
   useEffect(() => {
     let active = true;
@@ -200,7 +204,11 @@ function ResultView({ result }: { result: CompletedTrainingResult }) {
         <h2 className="text-lg">Competências avaliadas</h2>
         <div className="mt-4 grid lg:grid-cols-2 lg:gap-x-16">
           {evaluation.categories.map((c) => (
-            <MeterRow key={c.category} label={`${c.label} · ${c.score}/${c.maxScore}`} value={c.percentage} />
+            <MeterRow
+              key={c.category}
+              label={`${c.label} · ${c.score}/${c.maxScore}`}
+              value={c.percentage}
+            />
           ))}
         </div>
       </PageSection>
@@ -236,7 +244,10 @@ function ResultView({ result }: { result: CompletedTrainingResult }) {
             <AccordionContent>
               <ol className="space-y-3">
                 {evaluation.expectedManagement.map((step, index) => (
-                  <li key={step} className="flex gap-3 text-sm leading-relaxed text-muted-foreground">
+                  <li
+                    key={step}
+                    className="flex gap-3 text-sm leading-relaxed text-muted-foreground"
+                  >
                     <span className="font-display text-xs tabular-nums text-gold">{index + 1}</span>
                     <span>{step}</span>
                   </li>
@@ -278,7 +289,12 @@ function ResultView({ result }: { result: CompletedTrainingResult }) {
                   {result.transcript.map((entry, index) => (
                     <li key={`${entry.clock}-${index}`} className="py-3">
                       <p className="text-xs text-muted-foreground/70">
-                        {entry.clock} · {entry.source === "voice" ? "voz" : entry.source === "guided_option" ? "apoio" : "texto"}
+                        {entry.clock} ·{" "}
+                        {entry.source === "voice"
+                          ? "voz"
+                          : entry.source === "guided_option"
+                            ? "apoio"
+                            : "texto"}
                       </p>
                       <p className="mt-1 break-words text-sm text-foreground">
                         Você disse: {entry.rawContent}

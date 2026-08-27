@@ -14,6 +14,7 @@ import type { SpeechRate } from "./voice-types";
 
 export function useShadowSpeech() {
   const [speaking, setSpeaking] = useState(false);
+  const [active, setActive] = useState(false);
   const [amplitude, setAmplitude] = useState(0);
   const [failed, setFailed] = useState(false);
 
@@ -53,6 +54,7 @@ export function useShadowSpeech() {
     turnRef.current = null;
     releaseAudio();
     setSpeaking(false);
+    setActive(false);
   }, [releaseAudio]);
 
   const speak = useCallback(
@@ -66,6 +68,7 @@ export function useShadowSpeech() {
       const controller = new AbortController();
       abortRef.current = controller;
       turnRef.current = params.turnId;
+      setActive(true);
       setFailed(false);
 
       let blob: Blob;
@@ -79,7 +82,10 @@ export function useShadowSpeech() {
           controller.signal,
         );
       } catch {
-        if (turnRef.current === params.turnId) setFailed(true);
+        if (turnRef.current === params.turnId) {
+          setFailed(true);
+          setActive(false);
+        }
         return false;
       }
 
@@ -137,6 +143,7 @@ export function useShadowSpeech() {
           if (turnRef.current === params.turnId) {
             releaseAudio();
             setSpeaking(false);
+            setActive(false);
             turnRef.current = null;
           }
           resolve(true);
@@ -146,6 +153,7 @@ export function useShadowSpeech() {
             releaseAudio();
             setSpeaking(false);
             setFailed(true);
+            setActive(false);
           }
           resolve(false);
         };
@@ -156,6 +164,7 @@ export function useShadowSpeech() {
             // Autoplay bloqueado (iOS): a resposta permanece em texto.
             setFailed(true);
             setSpeaking(false);
+            setActive(false);
             resolve(false);
           });
       });
@@ -178,6 +187,7 @@ export function useShadowSpeech() {
     speak,
     stop,
     speaking,
+    active,
     amplitude,
     /** Leitura por quadro, sem re-renderização do React. */
     getAmplitude: () => amplitudeRef.current,

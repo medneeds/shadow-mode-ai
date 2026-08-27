@@ -12,6 +12,7 @@ import {
 import type { VoiceState } from "@/components/shadow/VoicePresence";
 import {
   createSession,
+  completeSession,
   defaultConfig,
   type TrainingConfig,
   type TrainingSession,
@@ -25,7 +26,6 @@ import {
 } from "./trainee-input";
 import { advanceClinicalTime, initializeCase } from "./clinical/clinical-case-engine";
 import type { ClinicalCaseDefinition, ClinicalCaseRuntime } from "./clinical/clinical-case-types";
-import { referenceCase } from "./clinical/reference-cases";
 import { selectCase } from "./clinical/selection-engine";
 import { createMessage, type ShadowMessage, type ShadowMessageRole } from "./shadow/conversation";
 import type { ConfigField } from "./shadow/setup-flow";
@@ -71,10 +71,10 @@ type SessionContextValue = {
   consumePendingFacts: () => string[];
   /** Runtime clínico da última estação concluída — base da avaliação. */
   lastRuntime: ClinicalCaseRuntime | null;
-  /** Caso (com variante aplicada) da estação atual. */
-  caseDefinition: ClinicalCaseDefinition;
+  /** Caso (com variante aplicada) da estação atual. Nunca há fallback clínico. */
+  caseDefinition: ClinicalCaseDefinition | null;
   /** Caso da última estação concluída — base do resultado e do debriefing. */
-  lastCaseDefinition: ClinicalCaseDefinition;
+  lastCaseDefinition: ClinicalCaseDefinition | null;
 };
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -91,12 +91,16 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
   const [pendingFacts, setPendingFacts] = useState<string[]>([]);
   const [lastRuntime, setLastRuntime] = useState<ClinicalCaseRuntime | null>(null);
   const runtimeRef = useRef<ClinicalCaseRuntime | null>(null);
-  const [caseDefinition, setCaseDefinition] = useState<ClinicalCaseDefinition>(referenceCase);
-  const [lastCaseDefinition, setLastCaseDefinition] =
-    useState<ClinicalCaseDefinition>(referenceCase);
-  const caseRef = useRef<ClinicalCaseDefinition>(referenceCase);
+  const [caseDefinition, setCaseDefinition] = useState<ClinicalCaseDefinition | null>(null);
+  const [lastCaseDefinition, setLastCaseDefinition] = useState<ClinicalCaseDefinition | null>(null);
+  const caseRef = useRef<ClinicalCaseDefinition | null>(null);
   const recentCaseIdsRef = useRef<string[]>([]);
 
+  /**
+   * Configuração fora da estação. Ao iniciar, `session.config` congela tema,
+   * nível, duração e caso; `config` continua sendo a preferência para a próxima
+   * estação e para controles de experiência explicitamente mutáveis.
+   */
   const setConfig = useCallback((next: Partial<TrainingConfig>) => {
     configRef.current = { ...configRef.current, ...next };
     setConfigState(configRef.current);
@@ -146,12 +150,21 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
         excludeCaseIds: recentCaseIdsRef.current,
       });
       const def = selection.definition;
+      const nextSession = createSession(resolvedConfig, def.id);
+      if (
+        nextSession.caseId !== def.id ||
+        nextSession.config !== resolvedConfig ||
+        initializeCase(def).caseId !== def.id
+      ) {
+        throw new Error("Inconsistência ao iniciar a estação clínica.");
+      }
       caseRef.current = def;
       setCaseDefinition(def);
       setLastCaseDefinition(def);
       recentCaseIdsRef.current = [def.id, ...recentCaseIdsRef.current].slice(0, 3);
       const initial = initializeCase(def);
-      setSession(createSession(resolvedConfig, def.id));
+      sessionRef.current = nextSession;
+      setSession(nextSession);
       runtimeRef.current = initial;
       setRuntimeState(initial);
       setRoomMessages([]);
@@ -161,17 +174,19 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
   );
 
   const pauseSession = useCallback(() => {
-    setSession((prev) =>
-      prev && prev.status === "active" ? { ...prev, status: "paused", voiceState: "paused" } : prev,
-    );
+    const current = sessionRef.current;
+    if (!current || current.status !== "active") return;
+    const paused = { ...current, status: "paused" as const, voiceState: "paused" as const };
+    sessionRef.current = paused;
+    setSession(paused);
   }, []);
 
   const resumeSession = useCallback(() => {
-    setSession((prev) =>
-      prev && prev.status === "paused"
-        ? { ...prev, status: "active", voiceState: "listening" }
-        : prev,
-    );
+    const current = sessionRef.current;
+    if (!current || current.status !== "paused") return;
+    const resumed = { ...current, status: "active" as const, voiceState: "listening" as const };
+    sessionRef.current = resumed;
+    setSession(resumed);
   }, []);
 
   // Fluxo único de conclusão (manual e automático usam esta função).
@@ -184,13 +199,7 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
     const current = sessionRef.current;
     if (!current) return null;
     if (current.status === "finished") return current;
-    const finished: TrainingSession = {
-      ...current,
-      status: "finished",
-      voiceState: "finished",
-      finishedAt: Date.now(),
-      completed: true,
-    };
+    const finished = completeSession(current);
     sessionRef.current = finished;
     setSession(finished);
     setLastCompleted(finished);
@@ -199,6 +208,9 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const clearSession = useCallback(() => {
+    sessionRef.current = null;
+    runtimeRef.current = null;
+    caseRef.current = null;
     setSession(null);
     setRuntimeState(null);
     setRoomMessages([]);
@@ -206,7 +218,12 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setVoiceState = useCallback((voiceState: VoiceState) => {
-    setSession((prev) => (prev && prev.status !== "finished" ? { ...prev, voiceState } : prev));
+    setSession((prev) => {
+      if (!prev || prev.status === "finished") return prev;
+      const next = { ...prev, voiceState: prev.status === "paused" ? "paused" : voiceState };
+      sessionRef.current = next;
+      return next;
+    });
   }, []);
 
   const submitTraineeInput = useCallback(
@@ -221,11 +238,9 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
         clinicalTime: current.durationSeconds - current.remainingSeconds,
         ...(provenance ? { provenance } : {}),
       });
-      setSession((prev) =>
-        prev && prev.id === current.id
-          ? { ...prev, traineeInputs: [...prev.traineeInputs, input] }
-          : prev,
-      );
+      const next = { ...current, traineeInputs: [...current.traineeInputs, input] };
+      sessionRef.current = next;
+      setSession(next);
       return input;
     },
     [],
@@ -250,32 +265,33 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!session || session.status !== "active") return;
     const interval = window.setInterval(() => {
+      const current = sessionRef.current;
+      const def = caseRef.current;
+      if (!current || current.status !== "active" || !def) return;
       setRuntimeState((prevRuntime) => {
         if (!prevRuntime) return prevRuntime;
-        const result = advanceClinicalTime(prevRuntime, 1, caseRef.current);
+        const result = advanceClinicalTime(prevRuntime, 1, def);
+        runtimeRef.current = result.runtime;
         if (result.newEvents.length > 0) {
           setPendingFacts((prev) => [...prev, ...result.newEvents.map((e) => e.fact)]);
         }
         return result.runtime;
       });
 
-      setSession((prev) => {
-        if (!prev || prev.status !== "active") return prev;
-        const remainingSeconds = Math.max(0, prev.remainingSeconds - 1);
+      setSession(() => {
+        const latest = sessionRef.current;
+        if (!latest || latest.status !== "active") return latest;
+        const remainingSeconds = Math.max(0, latest.remainingSeconds - 1);
         if (remainingSeconds === 0) {
-          const finished: TrainingSession = {
-            ...prev,
-            remainingSeconds: 0,
-            status: "finished",
-            voiceState: "finished",
-            finishedAt: Date.now(),
-            completed: true,
-          };
+          const finished = completeSession({ ...latest, remainingSeconds: 0 });
+          sessionRef.current = finished;
           setLastCompleted(finished);
           if (runtimeRef.current) setLastRuntime(runtimeRef.current);
           return finished;
         }
-        return { ...prev, remainingSeconds };
+        const next = { ...latest, remainingSeconds };
+        sessionRef.current = next;
+        return next;
       });
     }, 1000);
     return () => window.clearInterval(interval);

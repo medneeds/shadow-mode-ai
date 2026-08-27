@@ -13,6 +13,7 @@ import type {
 } from "./shadow-trainer";
 import type { TraineeInput } from "./trainee-input";
 import type { SpeechRate } from "./voice/voice-types";
+import type { ClinicalCaseDefinition, ClinicalCaseRuntime } from "./clinical/clinical-case-types";
 
 export type SessionStatus = "configuring" | "ready" | "active" | "paused" | "finished";
 
@@ -124,6 +125,32 @@ export function createSession(config: TrainingConfig, caseId?: string): Training
     completed: false,
     traineeInputs: [],
   };
+}
+
+/** Pure completion transition shared by manual and automatic session endings. */
+export function completeSession(
+  session: TrainingSession,
+  finishedAt = Date.now(),
+): TrainingSession {
+  if (session.status === "finished") return session;
+  return {
+    ...session,
+    status: "finished",
+    voiceState: "finished",
+    finishedAt,
+    completed: true,
+  };
+}
+
+/** Fails loudly in development if UI, session, and clinical runtime diverge. */
+export function assertSessionIntegrity(
+  session: TrainingSession,
+  definition: ClinicalCaseDefinition,
+  runtime: ClinicalCaseRuntime,
+): void {
+  if (session.caseId !== definition.id || runtime.caseId !== definition.id) {
+    throw new Error("A estação clínica está usando casos inconsistentes.");
+  }
 }
 
 /** Nota geral mockada — o motor de avaliação real chega em fases futuras. */
