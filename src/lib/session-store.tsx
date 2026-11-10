@@ -67,7 +67,7 @@ type SessionContextValue = {
 
   /* --- verdade clínica determinística --- */
   runtime: ClinicalCaseRuntime | null;
-  setRuntime: (next: ClinicalCaseRuntime) => void;
+  setRuntime: (next: ClinicalCaseRuntime) => { runtime: ClinicalCaseRuntime; facts: string[] } | null;
   /** Fatos emitidos pelo tempo, aguardando fraseado do treinador. */
   pendingFacts: string[];
   consumePendingFacts: () => string[];
@@ -124,10 +124,11 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
 
   const setRuntime = useCallback((next: ClinicalCaseRuntime) => {
     const current = runtimeRef.current;
-    if (!current || sessionRef.current?.status !== "active") return;
+    if (!current || sessionRef.current?.status !== "active") return null;
     const reconciled = reconcileTurn(current, next, caseRef.current);
     runtimeRef.current = reconciled;
     setRuntimeState(reconciled);
+    return { runtime: reconciled, facts: reconciled.events.slice(current.events.length).map(e => e.fact) };
   }, []);
 
   useEffect(() => {

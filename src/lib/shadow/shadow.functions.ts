@@ -204,7 +204,7 @@ export const runClinicalTurn = createServerFn({ method: "POST" })
     );
     if (deterministicIds) {
       const { next, facts } = runActions(deterministicIds);
-      if (isFastPathEligible(facts)) {
+      if (isFastPathEligible(facts) || !llm) {
         const text = composeFastPathResponse(facts, data.config.trainerProfile);
         return {
           kind: "clinical_input" as const,

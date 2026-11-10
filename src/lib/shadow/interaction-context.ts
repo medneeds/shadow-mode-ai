@@ -41,7 +41,7 @@ export function observableStateSummary(runtime: ClinicalCaseRuntime): string {
   if (has("assess_airway", "secure_airway")) parts.push(`via aérea=${p.airway}`);
   if (has("assess_breathing")) parts.push(`esforço respiratório=${p.breathing.effort}`);
   if (has("assess_circulation")) parts.push(`perfusão=${p.circulation.perfusion}`);
-  if (has("place_monitoring", "check_vitals", "measure_vitals", "assess_vitals")) {
+  if (has("place_monitoring", "check_vital_signs", "reassess_vitals", "check_vitals", "measure_vitals", "assess_vitals")) {
     parts.push(`FC=${v.heartRate}`, `FR=${v.respiratoryRate}`, `PA=${v.systolicBP}/${v.diastolicBP}`, `SpO2=${v.oxygenSaturation}`);
   }
   if (has("check_capillary_glucose") && typeof v.glucoseMgDl === "number") parts.push(`glicemia=${v.glucoseMgDl}`);

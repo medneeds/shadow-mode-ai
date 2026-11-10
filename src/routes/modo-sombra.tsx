@@ -271,7 +271,8 @@ function ShadowRoom() {
 
         if (turnRef.current !== turnId || statusRef.current !== "active") return;
 
-        setRuntime(result.runtime);
+        const applied = setRuntime(result.runtime);
+        if (!applied) return;
         // Transparência de interpretação: o que o Sombra entendeu desta entrada.
         recordInterpretation(
           input.id,
@@ -279,9 +280,9 @@ function ShadowRoom() {
         );
         if (result.metaCommands.length > 0) applyMetaCommands(result.metaCommands);
         // Clinical speech is exclusively authored/engine-emitted, never LLM-expanded.
-        const utterances = result.facts.length
-          ? presentClinicalFacts(caseDefinition, result.runtime, result.facts, result.runtime.events)
-          : result.shadowText ? [{ speaker: "team" as const, text: result.shadowText, voicePreference: "male" as const }] : [];
+        const utterances = applied.facts.length
+          ? presentClinicalFacts(caseDefinition, applied.runtime, applied.facts, applied.runtime.events)
+          : result.actions.length === 0 && result.shadowText ? [{ speaker: "team" as const, text: result.shadowText, voicePreference: "male" as const }] : [];
         // The interpreter lock excludes playback so microphone barge-in remains available.
         busyRef.current = false;
         setBusy(false);
