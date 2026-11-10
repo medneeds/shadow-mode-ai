@@ -91,8 +91,9 @@ export function useShadowSpeech() {
               while (endAt - ctx.currentTime > 3 && !signal.aborted) {
                 await new Promise<void>((resolve) => {
                   const remove = playback.own(resolve);
-                  const timer = window.setTimeout(() => { remove(); resolve(); }, 50);
-                  playback.own(() => window.clearTimeout(timer));
+                  let removeTimer = () => undefined as void;
+                  const timer = window.setTimeout(() => { remove(); removeTimer(); resolve(); }, 50);
+                  removeTimer = playback.own(() => window.clearTimeout(timer));
                 });
               }
               if (signal.aborted) return;
