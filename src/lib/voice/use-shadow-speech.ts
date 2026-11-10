@@ -21,6 +21,7 @@ export function useShadowSpeech() {
   const urlRef = useRef<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const turnRef = useRef<string | null>(null);
+  const settleRef = useRef<((played: boolean) => void) | null>(null);
   const ctxRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const rafRef = useRef<number | null>(null);
@@ -51,6 +52,10 @@ export function useShadowSpeech() {
     abortRef.current?.abort();
     abortRef.current = null;
     turnRef.current = null;
+    // Settle any interrupted playback promise; otherwise callers can hang indefinitely.
+    const settle = settleRef.current;
+    settleRef.current = null;
+    settle?.(false);
     releaseAudio();
     setSpeaking(false);
   }, [releaseAudio]);
@@ -133,13 +138,21 @@ export function useShadowSpeech() {
       }
 
       return await new Promise<boolean>((resolve) => {
+        let settled = false;
+        const finish = (played: boolean) => {
+          if (settled) return;
+          settled = true;
+          if (settleRef.current === finish) settleRef.current = null;
+          resolve(played);
+        };
+        settleRef.current = finish;
         audio.onended = () => {
           if (turnRef.current === params.turnId) {
             releaseAudio();
             setSpeaking(false);
             turnRef.current = null;
           }
-          resolve(true);
+          finish(true);
         };
         audio.onerror = () => {
           if (turnRef.current === params.turnId) {
@@ -147,7 +160,7 @@ export function useShadowSpeech() {
             setSpeaking(false);
             setFailed(true);
           }
-          resolve(false);
+          finish(false);
         };
         audio
           .play()
@@ -166,6 +179,8 @@ export function useShadowSpeech() {
   useEffect(
     () => () => {
       abortRef.current?.abort();
+      settleRef.current?.(false);
+      settleRef.current = null;
       releaseAudio();
       const ctx = ctxRef.current;
       ctxRef.current = null;
