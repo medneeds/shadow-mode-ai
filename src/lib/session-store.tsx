@@ -29,6 +29,8 @@ import { referenceCase } from "./clinical/reference-cases";
 import { selectCase } from "./clinical/selection-engine";
 import { createMessage, type ShadowMessage, type ShadowMessageRole } from "./shadow/conversation";
 import type { ConfigField } from "./shadow/setup-flow";
+import { elapsedWholeSeconds, tickSession } from "./session-clock";
+import { reconcileTurn } from "./clinical/reconcile-turn";
 
 type SessionContextValue = {
   /** Configuração atual (persiste entre estações no ciclo de vida do app). */
@@ -65,7 +67,7 @@ type SessionContextValue = {
 
   /* --- verdade clínica determinística --- */
   runtime: ClinicalCaseRuntime | null;
-  setRuntime: (next: ClinicalCaseRuntime) => void;
+  setRuntime: (next: ClinicalCaseRuntime) => { runtime: ClinicalCaseRuntime; facts: string[] } | null;
   /** Fatos emitidos pelo tempo, aguardando fraseado do treinador. */
   pendingFacts: string[];
   consumePendingFacts: () => string[];
@@ -121,8 +123,12 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
   );
 
   const setRuntime = useCallback((next: ClinicalCaseRuntime) => {
-    runtimeRef.current = next;
-    setRuntimeState(next);
+    const current = runtimeRef.current;
+    if (!current || sessionRef.current?.status !== "active") return null;
+    const reconciled = reconcileTurn(current, next, caseRef.current);
+    runtimeRef.current = reconciled;
+    setRuntimeState(reconciled);
+    return { runtime: reconciled, facts: reconciled.events.slice(current.events.length).map(e => e.fact) };
   }, []);
 
   useEffect(() => {
@@ -151,7 +157,9 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
       setLastCaseDefinition(def);
       recentCaseIdsRef.current = [def.id, ...recentCaseIdsRef.current].slice(0, 3);
       const initial = initializeCase(def);
-      setSession(createSession(resolvedConfig, def.id));
+      const created = createSession(resolvedConfig, def.id);
+      sessionRef.current = created;
+      setSession(created);
       runtimeRef.current = initial;
       setRuntimeState(initial);
       setRoomMessages([]);
@@ -161,17 +169,19 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
   );
 
   const pauseSession = useCallback(() => {
-    setSession((prev) =>
-      prev && prev.status === "active" ? { ...prev, status: "paused", voiceState: "paused" } : prev,
-    );
+    const current = sessionRef.current;
+    if (!current || current.status !== "active") return;
+    const paused: TrainingSession = { ...current, status: "paused", voiceState: "paused" };
+    sessionRef.current = paused;
+    setSession(paused);
   }, []);
 
   const resumeSession = useCallback(() => {
-    setSession((prev) =>
-      prev && prev.status === "paused"
-        ? { ...prev, status: "active", voiceState: "listening" }
-        : prev,
-    );
+    const current = sessionRef.current;
+    if (!current || current.status !== "paused") return;
+    const resumed: TrainingSession = { ...current, status: "active", voiceState: "listening" };
+    sessionRef.current = resumed;
+    setSession(resumed);
   }, []);
 
   // Fluxo único de conclusão (manual e automático usam esta função).
@@ -199,6 +209,8 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const clearSession = useCallback(() => {
+    sessionRef.current = null;
+    runtimeRef.current = null;
     setSession(null);
     setRuntimeState(null);
     setRoomMessages([]);
@@ -249,34 +261,26 @@ export function TrainingSessionProvider({ children }: { children: ReactNode }) {
   // Cronômetro + tempo clínico determinístico (o motor decide, nunca o modelo).
   useEffect(() => {
     if (!session || session.status !== "active") return;
+    let baseline = performance.now();
     const interval = window.setInterval(() => {
-      setRuntimeState((prevRuntime) => {
-        if (!prevRuntime) return prevRuntime;
-        const result = advanceClinicalTime(prevRuntime, 1, caseRef.current);
+      const current = sessionRef.current;
+      if (!current || current.status !== "active") return;
+      const seconds = elapsedWholeSeconds(baseline, performance.now(), current.remainingSeconds);
+      if (seconds === 0) return;
+      baseline += seconds * 1000;
+      const clinical = runtimeRef.current;
+      if (clinical) {
+        const result = advanceClinicalTime(clinical, seconds, caseRef.current);
+        runtimeRef.current = result.runtime;
+        setRuntimeState(result.runtime);
         if (result.newEvents.length > 0) {
           setPendingFacts((prev) => [...prev, ...result.newEvents.map((e) => e.fact)]);
         }
-        return result.runtime;
-      });
-
-      setSession((prev) => {
-        if (!prev || prev.status !== "active") return prev;
-        const remainingSeconds = Math.max(0, prev.remainingSeconds - 1);
-        if (remainingSeconds === 0) {
-          const finished: TrainingSession = {
-            ...prev,
-            remainingSeconds: 0,
-            status: "finished",
-            voiceState: "finished",
-            finishedAt: Date.now(),
-            completed: true,
-          };
-          setLastCompleted(finished);
-          if (runtimeRef.current) setLastRuntime(runtimeRef.current);
-          return finished;
-        }
-        return { ...prev, remainingSeconds };
-      });
+      }
+      const next = tickSession(current, seconds);
+      sessionRef.current = next;
+      setSession(next);
+      if (next.remainingSeconds === 0) finishSession();
     }, 1000);
     return () => window.clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps

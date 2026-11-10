@@ -32,6 +32,7 @@ import {
   visibleStateSummary,
 } from "@/lib/shadow/shadow-turn-schemas";
 import type { TrainingConfig } from "@/lib/training-session";
+import { unsafeInterpretationReason } from "@/lib/interpreter/action-safety";
 
 type MetaCommandDto = { type: string; value: string | null };
 
@@ -203,7 +204,7 @@ export const runClinicalTurn = createServerFn({ method: "POST" })
     );
     if (deterministicIds) {
       const { next, facts } = runActions(deterministicIds);
-      if (isFastPathEligible(facts)) {
+      if (isFastPathEligible(facts) || !llm) {
         const text = composeFastPathResponse(facts, data.config.trainerProfile);
         return {
           kind: "clinical_input" as const,
@@ -280,6 +281,12 @@ export const runClinicalTurn = createServerFn({ method: "POST" })
       };
     }
 
+    const safetyReason = unsafeInterpretationReason(data.rawContent, interpretation.actions, referenceCase.actions);
+    if (safetyReason) {
+      return { ...base, kind: "ambiguous" as const, shadowText: safetyReason as string | null,
+        speechText: speech(safetyReason), fallback: false };
+    }
+
     // Limiar de confiança: incerteza em conduta de alto impacto vira esclarecimento.
     const uncertainHighImpact = interpretation.actions.find((a) => {
       const category = referenceCase.actions.find((c) => c.id === a.actionId)?.category;
@@ -331,24 +338,12 @@ export const runClinicalTurn = createServerFn({ method: "POST" })
 
     // Relacional: responder à pessoa, sem tocar no motor clínico nem na pontuação.
     if (interpretation.kind === "relational") {
-      const composed = await composeShadowResponse(llm, {
-        facts: [],
-        profile: data.config.trainerProfile,
-        context: data.context,
-        structuredContext,
-        traineeInput: data.rawContent,
-        relational: {
-          tone: interpretation.emotionalTone ?? "neutral",
-          offTrack: interpretation.offTrack,
-          inStation: true,
-        },
-      });
       return {
         ...base,
         kind: "relational" as const,
-        shadowText: composed.text as string | null,
-        speechText: speech(composed.text),
-        fallback: composed.fallback,
+        shadowText: null as string | null,
+        speechText: null as string | null,
+        fallback: false,
       };
     }
 

@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 import { applyAction, advanceClinicalTime, buildAction, disclosableInformation, initializeCase } from "./clinical-case-engine";
 import type { ClinicalCaseDefinition } from "./clinical-case-types";
 
@@ -54,7 +54,7 @@ describe("clinical engine regressions", () => {
     runtime = applyAction(runtime, buildAction(definition, runtime, "order_exam"), definition).runtime;
     expect(runtime.actionLog.at(-1)?.status).toBe("not_applicable");
     runtime = advanceClinicalTime(runtime, 3, definition).runtime;
-    expect(runtime.investigations.exam?.status).toBe("available");
+    expect(runtime.investigations['exam']?.status).toBe("available");
   });
 
   test("identical actions and elapsed time produce identical clinical state", () => {

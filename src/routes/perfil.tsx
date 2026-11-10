@@ -18,6 +18,8 @@ import { pageTitle } from "@/lib/brand";
 export const Route = createFileRoute("/perfil")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: pageTitle("Perfil do médico") },
       {
         name: "description",

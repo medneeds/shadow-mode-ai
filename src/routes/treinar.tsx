@@ -47,6 +47,8 @@ import { pageTitle } from "@/lib/brand";
 export const Route = createFileRoute("/treinar")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: pageTitle("Configurar estação") },
       {
         name: "description",

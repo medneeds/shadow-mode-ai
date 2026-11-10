@@ -70,6 +70,8 @@ export function useVoiceCapture({ onUtterance, onSpeechStart, suspended }: Optio
   const lastFinalizeAtRef = useRef(0);
   /** Push-to-talk: grava enquanto o gesto estiver ativo, sem VAD. */
   const forcedRef = useRef(false);
+  const generationRef = useRef(0);
+  const startingRef = useRef(false);
 
   useEffect(() => {
     suspendedRef.current = Boolean(suspended);
@@ -86,6 +88,10 @@ export function useVoiceCapture({ onUtterance, onSpeechStart, suspended }: Optio
   }, [onUtterance, onSpeechStart]);
 
   const teardown = useCallback(() => {
+    generationRef.current++;
+    startingRef.current = false;
+    forcedRef.current = false;
+    if (nodeRef.current) nodeRef.current.onaudioprocess = null;
     nodeRef.current?.disconnect();
     sourceRef.current?.disconnect();
     nodeRef.current = null;
@@ -119,10 +125,13 @@ export function useVoiceCapture({ onUtterance, onSpeechStart, suspended }: Optio
   }, []);
 
   const start = useCallback(async () => {
-    if (streamRef.current) return;
+    if (streamRef.current || startingRef.current) return;
+    const generation = ++generationRef.current;
+    startingRef.current = true;
     if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
       setStatus("unsupported");
       setMessage(voiceMessages.micUnsupported);
+      startingRef.current = false;
       return;
     }
 
@@ -135,6 +144,8 @@ export function useVoiceCapture({ onUtterance, onSpeechStart, suspended }: Optio
         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
       });
     } catch (error) {
+      if (generation !== generationRef.current) return;
+      startingRef.current = false;
       const name = (error as { name?: string })?.name ?? "";
       if (name === "NotAllowedError" || name === "SecurityError") {
         setStatus("denied");
@@ -149,6 +160,11 @@ export function useVoiceCapture({ onUtterance, onSpeechStart, suspended }: Optio
       return;
     }
 
+    if (generation !== generationRef.current) {
+      stream.getTracks().forEach(track => track.stop());
+      return;
+    }
+
     try {
       const AudioCtx =
         window.AudioContext ??
@@ -157,6 +173,11 @@ export function useVoiceCapture({ onUtterance, onSpeechStart, suspended }: Optio
       const ctx = new AudioCtx();
       // iOS Safari exige retomada dentro de um gesto do usuário.
       if (ctx.state === "suspended") await ctx.resume().catch(() => undefined);
+      if (generation !== generationRef.current) {
+        stream.getTracks().forEach(track => track.stop());
+        void ctx.close();
+        return;
+      }
 
       const source = ctx.createMediaStreamSource(stream);
       const node = ctx.createScriptProcessor(4096, 1, 1);
@@ -164,7 +185,7 @@ export function useVoiceCapture({ onUtterance, onSpeechStart, suspended }: Optio
       node.onaudioprocess = (event) => {
         const input = event.inputBuffer.getChannelData(0);
         let sum = 0;
-        for (let i = 0; i < input.length; i += 1) sum += input[i]! * input[i]!;
+        for (const sample of input) sum += sample * sample;
         const rms = Math.sqrt(sum / input.length);
         const level = Math.min(1, rms * 8);
         amplitudeRef.current = level;
@@ -182,6 +203,10 @@ export function useVoiceCapture({ onUtterance, onSpeechStart, suspended }: Optio
         // é fechado por silêncio — o usuário decide o fim ao soltar.
         if (forcedRef.current) {
           chunksRef.current.push(new Float32Array(input));
+          if (now - startedAtRef.current >= MAX_UTTERANCE_MS) {
+            forcedRef.current = false;
+            finalize(ctx.sampleRate);
+          }
           return;
         }
 
@@ -219,7 +244,9 @@ export function useVoiceCapture({ onUtterance, onSpeechStart, suspended }: Optio
       sourceRef.current = source;
       nodeRef.current = node;
       setStatus("listening");
+      startingRef.current = false;
     } catch {
+      startingRef.current = false;
       stream.getTracks().forEach((track) => track.stop());
       setStatus("error");
       setMessage(voiceMessages.micError);

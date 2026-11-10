@@ -25,7 +25,7 @@ export async function transcribeUtterance(
   const response = await fetch("/api/voice/transcribe", {
     method: "POST",
     body: form,
-    ...(signal ? { signal } : {}),
+    signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(20000)]) : AbortSignal.timeout(20000),
   });
   if (!response.ok) {
     const body = (await response.json().catch(() => ({}))) as { error?: string };
@@ -47,4 +47,20 @@ export async function synthesizeShadowResponse(
   });
   if (!response.ok) throw new Error(`tts_${response.status}`);
   return response.blob();
+}
+
+/** Incremental transport; only the canonical response is sent to the provider. */
+export async function streamSpeechResponse(
+  params: { text: string; voicePreference: VoicePreference; speechRate: SpeechRate },
+  format: "pcm" | "mp3",
+  signal: AbortSignal,
+): Promise<Response> {
+  const response = await fetch("/api/voice/speak", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...params, format }),
+    signal,
+  });
+  if (!response.ok || !response.body) throw new Error(`tts_${response.status}`);
+  return response;
 }

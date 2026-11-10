@@ -22,6 +22,8 @@ import { runEngineChecks } from "@/lib/clinical/engine-checks";
 export const Route = createFileRoute("/dev/motor-clinico")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "Harness do motor clínico — Modo Sombra | By Medneeds" },
       {
         name: "description",

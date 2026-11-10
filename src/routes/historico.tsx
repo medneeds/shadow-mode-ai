@@ -8,6 +8,8 @@ import { mockHistory } from "@/lib/shadow-content";
 export const Route = createFileRoute("/historico")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "Histórico de estações — Modo Sombra | By Medneeds" },
       {
         name: "description",

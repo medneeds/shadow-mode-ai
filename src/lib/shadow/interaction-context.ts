@@ -32,18 +32,19 @@ export type InteractionContext = {
 /** Somente estado OBSERVÁVEL — nunca diagnóstico, rubrica ou ações esperadas. */
 export function observableStateSummary(runtime: ClinicalCaseRuntime): string {
   const p = runtime.patient;
+  const measured = runtime.actionLog.filter(a => a.status !== "not_applicable" && a.status !== "not_performed");
+  const has = (...ids: string[]) => measured.some(a => ids.includes(a.actionId));
   const v = p.vitals;
   const parts = [
     `consciência=${p.consciousness}`,
-    `via aérea=${p.airway}`,
-    `esforço respiratório=${p.breathing.effort}`,
-    `perfusão=${p.circulation.perfusion}`,
-    `FC=${v.heartRate}`,
-    `FR=${v.respiratoryRate}`,
-    `PA=${v.systolicBP}/${v.diastolicBP}`,
-    `SpO2=${v.oxygenSaturation}`,
   ];
-  if (typeof v.glucoseMgDl === "number") parts.push(`glicemia=${v.glucoseMgDl}`);
+  if (has("assess_airway", "secure_airway")) parts.push(`via aérea=${p.airway}`);
+  if (has("assess_breathing")) parts.push(`esforço respiratório=${p.breathing.effort}`);
+  if (has("assess_circulation")) parts.push(`perfusão=${p.circulation.perfusion}`);
+  if (has("place_monitoring", "check_vital_signs", "reassess_vitals", "check_vitals", "measure_vitals", "assess_vitals")) {
+    parts.push(`FC=${v.heartRate}`, `FR=${v.respiratoryRate}`, `PA=${v.systolicBP}/${v.diastolicBP}`, `SpO2=${v.oxygenSaturation}`);
+  }
+  if (has("check_capillary_glucose") && typeof v.glucoseMgDl === "number") parts.push(`glicemia=${v.glucoseMgDl}`);
   return parts.join("; ");
 }
 
@@ -72,16 +73,16 @@ export function buildInteractionContext(params: {
     .map((line) => line.trim())
     .filter(Boolean);
   const traineeLines = conversationLines
-    .filter((l) => l.startsWith("Trainee:"))
+    .filter((l) => l.startsWith("Trainee:") || l.startsWith("Médico:"))
     .slice(-3)
-    .map((l) => l.replace(/^Trainee:\s*/, ""));
+    .map((l) => l.replace(/^(Trainee|Médico):\s*/, ""));
   const lastShadow = [...conversationLines].reverse().find((l) => l.startsWith("Sombra:"));
 
   return {
     phase: "active_station",
     clinicalTime: runtime.elapsedClinicalSeconds,
     observable: observableStateSummary(runtime),
-    recentActions: runtime.actionLog.slice(-8).map((a) => ({
+    recentActions: runtime.actionLog.filter(a => a.status !== "not_applicable" && a.status !== "not_performed").slice(-8).map((a) => ({
       actionId: a.actionId,
       label: a.label,
       atSecond: a.clinicalTime,

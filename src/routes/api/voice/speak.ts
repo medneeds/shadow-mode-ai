@@ -11,6 +11,7 @@ const bodySchema = z.object({
   text: z.string().trim().min(1).max(2000),
   voicePreference: z.enum(["female", "male"]),
   speechRate: z.enum(["slower", "normal", "faster"]).default("normal"),
+  format: z.enum(["mp3", "pcm"]).default("mp3"),
 });
 
 export const Route = createFileRoute("/api/voice/speak")({
@@ -30,7 +31,7 @@ export const Route = createFileRoute("/api/voice/speak")({
 
         try {
           const provider = createSpeechSynthesisProvider();
-          const { stream, contentType } = await provider.synthesize(parsed);
+          const { stream, contentType } = await provider.synthesize({ ...parsed, signal: request.signal });
           return new Response(stream, {
             headers: { "Content-Type": contentType, "Cache-Control": "no-store" },
           });

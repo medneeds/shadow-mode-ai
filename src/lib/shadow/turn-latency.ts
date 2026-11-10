@@ -24,6 +24,10 @@ export function markTurn(turnId: string, stage: TurnStage): void {
   const metrics = turns.get(turnId) ?? { turnId };
   metrics[stage] = performance.now();
   turns.set(turnId, metrics);
+  if (turns.size > 100) {
+    const oldest = turns.keys().next().value;
+    if (oldest !== undefined) turns.delete(oldest);
+  }
 }
 
 function delta(m: TurnLatencyMetrics, from: TurnStage, to: TurnStage): number | null {
