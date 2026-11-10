@@ -29,7 +29,7 @@ import { formatClock } from "@/lib/training-session";
 import { traineeCanSpeak, traineeCanType } from "@/lib/shadow-trainer";
 import { metaCommandLabels, type MetaCommandType } from "@/lib/interpreter/meta-command";
 import { recentContext } from "@/lib/shadow/conversation";
-import { narrateClinicalEvents, runClinicalTurn } from "@/lib/shadow/shadow.functions";
+import { runClinicalTurn } from "@/lib/shadow/shadow.functions";
 import { toSpeechText } from "@/lib/shadow/speech-text";
 import { markTurn, reportTurn } from "@/lib/shadow/turn-latency";
 import { useVoiceCapture } from "@/lib/voice/use-voice-capture";
@@ -86,7 +86,6 @@ function ShadowRoom() {
   } = useTrainingSession();
 
   const runTurn = useServerFn(runClinicalTurn);
-  const narrate = useServerFn(narrateClinicalEvents);
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [draft, setDraft] = useState("");
@@ -152,7 +151,7 @@ function ShadowRoom() {
     async (turnId: number, text: string, speechText?: string | null, speaker: SimulationSpeaker = "team", voice?: "male" | "female") => {
       if (!wantsVoiceOutput || audioMuted || !availability?.textToSpeech) return;
       if (turnRef.current !== turnId) return;
-      setVoiceState("speaking");
+      setVoiceState("processing");
       const ok = await speech.speak({
         turnId: String(turnId),
         text: speechText || toSpeechText(text),
@@ -434,7 +433,7 @@ function ShadowRoom() {
 
   // Fatos gerados pelo tempo (deterioração, resultados) ganham o tom do perfil.
   useEffect(() => {
-    if (pendingFacts.length === 0 || status !== "active" || busyRef.current) return;
+    if (pendingFacts.length === 0 || status !== "active" || busyRef.current || transcribingRef.current) return;
     const facts = consumePendingFacts();
     if (facts.length === 0) return;
     const turnId = turnRef.current + 1;
@@ -542,6 +541,9 @@ function ShadowRoom() {
 
   return (
     <div className="room-backdrop relative flex min-h-dvh flex-col">
+      <div className="sr-only" role="log" aria-label="Conversa da estação" aria-live="off">
+        {roomMessages.map(message => <p key={message.id}>{message.role in speakerLabels ? speakerLabels[message.role as SimulationSpeaker] : message.role === "trainee" ? "Médico" : "Sistema"}: {message.text}</p>)}
+      </div>
       {/* Chat discreto que se forma atrás da estação — memória, não interface. */}
       <AmbientTranscript messages={roomMessages} />
 

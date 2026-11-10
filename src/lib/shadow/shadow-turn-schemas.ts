@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { trainerProfileIds } from "@/lib/interpreter/interpretation-schema";
 import type { ClinicalCaseRuntime } from "@/lib/clinical/clinical-case-types";
+import { observableStateSummary } from "./interaction-context";
 
 export const configSchema = z.object({
   themeId: z.string(),
@@ -15,6 +16,7 @@ export const configSchema = z.object({
   traineeInputMode: z.enum(["voice", "text", "hybrid"]),
   voicePreference: z.enum(["female", "male"]),
   trainerProfile: z.enum(trainerProfileIds),
+  speechRate: z.enum(["slower", "normal", "faster"]).default("normal"),
 });
 
 export const setupTurnSchema = z.object({
@@ -46,6 +48,5 @@ export const narrateSchema = z.object({
 
 /** Somente estado OBSERVÁVEL — nunca diagnóstico, rubrica ou ações esperadas. */
 export function visibleStateSummary(runtime: ClinicalCaseRuntime): string {
-  const v = runtime.patient.vitals;
-  return `consciência=${runtime.patient.consciousness}; via aérea=${runtime.patient.airway}; FC=${v.heartRate}; FR=${v.respiratoryRate}; PA=${v.systolicBP}/${v.diastolicBP}; SpO2=${v.oxygenSaturation}`;
+  return observableStateSummary(runtime);
 }
