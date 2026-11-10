@@ -58,7 +58,7 @@ function normalize(text: string): string {
 export function aliasHintsFor(actionIds: string[]): string {
   return actionIds
     .filter((id) => aliasMap[id])
-    .map((id) => `${id}: ${aliasMap[id]!.join(", ")}`)
+    .map((id) => `${id}: ${aliasMap[id]?.join(", ") ?? ""}`)
     .join("\n");
 }
 
@@ -72,6 +72,7 @@ export function matchDeterministicActions(
 ): string[] | null {
   const text = normalize(rawContent);
   if (!text || text.length > 90) return null;
+  if (/\d/.test(text)) return null; // numeric settings/doses require explicit interpretation
   // Correção, negação, dúvida ou pergunta → sempre interpretação semântica.
   if (/\b(nao|nao e|pera|espera|na verdade|melhor|talvez|sera|quanto|como|qual|por que)\b/.test(text)) {
     return null;

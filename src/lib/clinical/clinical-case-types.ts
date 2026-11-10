@@ -14,6 +14,7 @@ import type { LevelId } from "@/lib/shadow-content";
 import type { EvaluationDomain } from "@/lib/evaluation/evaluation-types";
 import type { ClinicalCaseMeta } from "./case-taxonomy";
 import type { CaseGuidance } from "./guidance-types";
+import type { CasePresentation } from "@/lib/shadow/clinical-presentation";
 
 /* ---------------------------------------------------------------- ações ---- */
 
@@ -420,6 +421,8 @@ export type ClinicalCaseDefinition = {
    * autonomia e zonas de raciocínio livre. Nunca altera a verdade clínica.
    */
   guidance?: CaseGuidance;
+  /** Pure presentation: no engine logic, disclosure rules or scoring changes. */
+  presentation?: CasePresentation;
   /**
    * Randomização controlada: apenas estes sinais vitais podem variar, e
    * somente dentro dos valores listados (verdade médica continua autoral).

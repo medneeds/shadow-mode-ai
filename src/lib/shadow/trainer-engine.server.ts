@@ -45,11 +45,11 @@ const relationalInstruction: Record<TrainerProfile, string> = {
 };
 
 const toneReading: Record<EmotionalTone, string> = {
-  neutral: "A pessoa está estável.",
-  tense: "A pessoa está tensa.",
-  frustrated: "A pessoa está frustrada ou irritada.",
-  distracted: "A pessoa está dispersa ou fora do eixo.",
-  confident: "A pessoa está confiante.",
+  neutral: "Não infira nem descreva o estado emocional real da pessoa.",
+  tense: "Não infira nem descreva o estado emocional real da pessoa.",
+  frustrated: "Não infira nem descreva o estado emocional real da pessoa.",
+  distracted: "Não infira nem descreva o estado emocional real da pessoa.",
+  confident: "Não infira nem descreva o estado emocional real da pessoa.",
 };
 
 export type TrainerRequest = {

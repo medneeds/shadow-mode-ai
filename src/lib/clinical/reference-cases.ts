@@ -69,6 +69,17 @@ export const referenceCase: ClinicalCaseDefinition = {
   opening:
     "Paciente de 58 anos é trazido ao pronto-socorro inconsciente por familiares. Você assume o atendimento agora.",
   fictional: true,
+  presentation: {
+    patientLines: [
+      { informationId: "info-alergias", text: "Não tenho alergias conhecidas.", emotion: "neutral" },
+    ],
+    criticalInterventions: [
+      {
+        triggerId: "trg_glucose_omission_360",
+        text: "Risco crítico: o paciente apresenta convulsão, sialorreia e saturação de 88%.",
+      },
+    ],
+  },
 
   patient: {
     age: 58,
