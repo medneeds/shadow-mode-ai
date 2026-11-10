@@ -1,0 +1,32 @@
+import asyncio,re
+from pathlib import Path
+from playwright.async_api import async_playwright,expect
+OUT=Path('/tmp/browser/shadow-validation')
+OUT.mkdir(parents=True, exist_ok=True)
+async def main():
+ async with async_playwright() as p:
+  browser=await p.chromium.launch(headless=True)
+  page=await browser.new_page(viewport={'width':390,'height':844})
+  errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
+  await page.goto('http://localhost:8080/treinar',wait_until='domcontentloaded')
+  await expect(page.get_by_role('button',name='Pular tudo',exact=True)).to_be_visible(timeout=20000)
+  await page.get_by_role('button',name='Pular tudo',exact=True).click()
+  await page.get_by_role('button',name='Emergência agora Emergência · 5 min').click()
+  await expect(page).to_have_url(re.compile('/modo-sombra'))
+  await page.get_by_role('button',name='Desligar a voz do Sombra').click()
+  await page.get_by_role('textbox',name='Sua conduta',exact=True).fill('dextro')
+  await page.get_by_role('button',name='Enviar conduta',exact=True).click()
+  await expect(page.get_by_role('textbox',name='Sua conduta',exact=True)).to_be_enabled(timeout=30000)
+  print(await page.locator('body').aria_snapshot())
+  print('LOG',await page.get_by_role('log',name='Conversa da estação').inner_text())
+  await expect(page.get_by_role('textbox',name='Sua conduta',exact=True)).to_be_enabled()
+  print('TRANSCRIPT',await page.get_by_role('log',name='Conversa da estação').inner_text())
+  await page.screenshot(path=str(OUT/'clinical-input.png'))
+  await page.get_by_role('button',name='Encerrar',exact=True).click()
+  await page.get_by_role('button',name='Encerrar e ver resultado').click()
+  await expect(page).to_have_url(re.compile('/resultado'))
+  await expect(page.get_by_text('dextro',exact=True)).to_be_visible()
+  print('RESULT',page.url,'ERRORS',errors)
+  await page.screenshot(path=str(OUT/'clinical-result.png'))
+  await browser.close()
+asyncio.run(main())
