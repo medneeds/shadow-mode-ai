@@ -10,8 +10,8 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "test": "bun test",
-    "typecheck": "tsc --noEmit"
+    "test": "vitest run",
+    "typecheck": "tsgo -b --noEmit"
   },
   "overrides": {
     "rolldown": "1.2.1"
