@@ -2,7 +2,7 @@
  * Fluxo conversacional calmo (não é um app de chat).
  * Uma resposta canônica do Sombra por turno: mesmo texto para UI e, na Phase 05, TTS.
  */
-export type ShadowMessageRole = "shadow" | "trainee" | "system";
+export type ShadowMessageRole = "shadow" | "trainee" | "system" | "patient" | "team";
 
 export type ShadowMessage = {
   id: string;
@@ -35,6 +35,6 @@ export function createMessage(
 export function recentContext(messages: ShadowMessage[], limit = 6): string {
   return messages
     .slice(-limit)
-    .map((m) => `${m.role === "shadow" ? "Sombra" : "Trainee"}: ${m.text}`)
+    .map((m) => `${({ shadow: "Sombra", trainee: "Médico", system: "Sistema", patient: "Paciente", team: "Equipe" })[m.role]}: ${m.text}`)
     .join("\n");
 }
