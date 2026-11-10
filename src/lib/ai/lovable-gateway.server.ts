@@ -1,86 +1,38 @@
-/**
- * Implementação do LlmProvider sobre o Lovable AI Gateway.
- * Server-only: a credencial nunca chega ao navegador.
- */
-import {
-  LlmUnavailableError,
-  type LlmJsonRequest,
-  type LlmProvider,
-  type LlmTextRequest,
-} from "./provider";
-
-type GatewayChoice = { message?: { content?: string | null } };
-type GatewayResponse = { choices?: GatewayChoice[]; error?: { message?: string } };
-
-function baseUrl(): string {
-  return process.env["SHADOW_LLM_BASE_URL"] ?? "https://ai.gateway.lovable.dev/v1";
-}
-
-function modelId(): string {
-  return process.env["SHADOW_LLM_MODEL"] ?? "google/gemini-3.7-flash";
-}
+/** Gateway adapter; SDK credentials are read only inside server execution. */
+import { generateChatCompletion, GatewayError } from "@lovable.dev/ai-gateway";
+import type { GeminiChatFields } from "@lovable.dev/ai-gateway";
+import { LlmUnavailableError, type LlmProvider } from "./provider";
 
 export function createLlmProvider(): LlmProvider {
-  const apiKey: string = process.env["LOVABLE_API_KEY"] ?? "";
-  if (!apiKey) {
-    throw new LlmUnavailableError("LOVABLE_API_KEY ausente no ambiente do servidor.");
-  }
-  const model = modelId();
-
-  async function call(body: Record<string, unknown>): Promise<string> {
-    const response = await fetch(`${baseUrl()}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Lovable-API-Key": apiKey,
-        "X-Lovable-AIG-SDK": "fetch",
-      },
-      body: JSON.stringify({ model, ...body }),
-    });
-
-    if (!response.ok) {
-      const detail = await response.text().catch(() => "");
-      throw new LlmUnavailableError(
-        `Gateway respondeu ${response.status}: ${detail.slice(0, 300)}`,
-        response.status,
-      );
-    }
-
-    const json = (await response.json()) as GatewayResponse;
-    const content = json.choices?.[0]?.message?.content;
-    if (!content) {
-      throw new LlmUnavailableError(json.error?.message ?? "Resposta vazia do gateway.");
-    }
-    return content;
-  }
-
-  return {
-    async generateJson(request: LlmJsonRequest) {
-      const content = await call({
-        messages: request.messages,
-        max_tokens: request.maxTokens ?? 700,
-        response_format: {
-          type: "json_schema",
-          json_schema: {
-            name: request.schemaName,
-            strict: true,
-            schema: request.jsonSchema,
-          },
-        },
+  async function call(fields: GeminiChatFields): Promise<string> {
+    try {
+      const result = await generateChatCompletion({ model: "google/gemini-3.7-flash", ...fields }, {
+        signal: AbortSignal.timeout(20000),
       });
-      try {
-        return JSON.parse(content) as unknown;
-      } catch {
-        throw new LlmUnavailableError("Saída estruturada inválida (JSON não parseável).");
+      const content = result.choices[0]?.message.content;
+      if (!content || typeof content !== "string") throw new LlmUnavailableError("Resposta vazia da interpretação.");
+      return content;
+    } catch (error) {
+      if (error instanceof GatewayError) {
+        // Status/correlation only: no prompts, transcripts, credentials or provider response body.
+        console.error("[sombra] interpretação", { code: error.code, status: error.httpStatus, ids: error.ids });
+        throw new LlmUnavailableError("Interpretação indisponível; nenhum tratamento foi inferido.", error.httpStatus);
       }
-    },
-
-    async generateText(request: LlmTextRequest) {
-      const content = await call({
+      throw error;
+    }
+  }
+  return {
+    async generateJson(request) {
+      return JSON.parse(await call({
         messages: request.messages,
         max_tokens: request.maxTokens ?? 700,
-      });
-      return content.trim();
+        response_format: { type: "json_schema", json_schema: {
+          name: request.schemaName, strict: true, schema: request.jsonSchema,
+        } },
+      })) as unknown;
+    },
+    async generateText(request) {
+      return (await call({ messages: request.messages, max_tokens: request.maxTokens ?? 700 })).trim();
     },
   };
 }
