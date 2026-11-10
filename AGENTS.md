@@ -15,3 +15,4 @@
 - Acquire Scribe tokens through an injected authenticated provider only; keep realtime disabled until real user authentication and issuance protection exist.
 - Keep partial transcripts outside clinical input and use confirmed transcripts only; character presentation never infers the doctor's emotional state.
 - Use Vitest for clinical and voice regression tests independently of the application Vite bootstrap.
+- Keep Gateway calls behind server boundaries using the official SDK and preserve the selected model/output limits; this retains the provider contract without changing clinical authority.
