@@ -49,7 +49,8 @@ function apiKey(): string {
 
 export function voiceAvailability(): VoiceAvailability {
   const configured = Boolean((process.env["ELEVENLABS_API_KEY"] ?? "").trim());
-  return { speechToText: configured, textToSpeech: configured };
+  // No authenticated app session exists yet: never offer a public ephemeral-token mint.
+  return { speechToText: configured, textToSpeech: configured, realtimeSpeechToText: false };
 }
 
 function sttModel(): string {
@@ -73,6 +74,7 @@ export function createSpeechRecognitionProvider(): SpeechRecognitionProvider {
         method: "POST",
         headers: { "xi-api-key": key },
         body: form,
+        signal: AbortSignal.timeout(20000),
       });
 
       if (!response.ok) {
@@ -89,12 +91,13 @@ export function createSpeechRecognitionProvider(): SpeechRecognitionProvider {
 export function createSpeechSynthesisProvider(): SpeechSynthesisProvider {
   const key = apiKey();
   return {
-    async synthesize({ text, voicePreference, speechRate }) {
+    async synthesize({ text, voicePreference, speechRate, format = "mp3", signal }) {
       const id = voiceId(voicePreference);
       const response = await fetch(
-        `${API}/v1/text-to-speech/${id}/stream?output_format=mp3_44100_128`,
+        `${API}/v1/text-to-speech/${id}/stream?output_format=${format === "pcm" ? "pcm_24000" : "mp3_44100_128"}`,
         {
           method: "POST",
+          signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(30000)]) : AbortSignal.timeout(30000),
           headers: { "xi-api-key": key, "Content-Type": "application/json" },
           body: JSON.stringify({
             // Texto canônico do Sombra, sem reescrita de conteúdo clínico.
@@ -115,7 +118,7 @@ export function createSpeechSynthesisProvider(): SpeechSynthesisProvider {
         throw new Error(`ElevenLabs TTS falhou [${response.status}]: ${body}`);
       }
 
-      return { stream: response.body, contentType: "audio/mpeg" };
+      return { stream: response.body, contentType: format === "pcm" ? "audio/pcm" : "audio/mpeg" };
     },
   };
 }

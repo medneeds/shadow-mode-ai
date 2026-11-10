@@ -39,6 +39,8 @@ export type SpeechSynthesisProvider = {
     text: string;
     voicePreference: VoicePreference;
     speechRate: SpeechRate;
+    format?: "mp3" | "pcm";
+    signal?: AbortSignal;
   }): Promise<{ stream: ReadableStream<Uint8Array>; contentType: string }>;
 };
 
@@ -51,6 +53,7 @@ export type VoiceProvider = {
 export type VoiceAvailability = {
   speechToText: boolean;
   textToSpeech: boolean;
+  realtimeSpeechToText?: boolean;
 };
 
 export class VoiceUnavailableError extends Error {}
