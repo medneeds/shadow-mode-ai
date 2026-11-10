@@ -164,7 +164,11 @@ export function useShadowSpeech() {
         };
         audio
           .play()
-          .then(() => setSpeaking(true))
+          .then(() => {
+            if (turnRef.current === params.turnId && !controller.signal.aborted) {
+              setSpeaking(true);
+            }
+          })
           .catch(() => {
             // Autoplay bloqueado (iOS): a resposta permanece em texto.
             setFailed(true);
