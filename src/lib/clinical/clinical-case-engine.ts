@@ -52,7 +52,7 @@ function actionDef(def: ClinicalCaseDefinition, actionId: string): ActionDefinit
 }
 
 function hasPerformed(runtime: ClinicalCaseRuntime, actionId: string): boolean {
-  return runtime.actionLog.some((a) => a.actionId === actionId);
+  return runtime.actionLog.some((a) => a.actionId === actionId && a.status !== "not_applicable" && a.status !== "not_performed");
 }
 
 export function evaluateTriggerCondition(
@@ -239,7 +239,7 @@ export function applyAction(
     const inv = def.investigations.find((i) => i.id === definition.requestsInvestigationId);
     if (inv) {
       const unmet = (inv.prerequisites ?? []).filter((p) => !hasPerformed(runtime, p));
-      if (unmet.length === 0) {
+      if (unmet.length === 0 && next.investigations[inv.id]?.status === "not_requested") {
         next = {
           ...next,
           investigations: {
